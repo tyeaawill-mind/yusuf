@@ -95,6 +95,38 @@ function LoginPage() {
 
         {/* Card */}
         <div className="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5">
+          {mfa ? (
+            <>
+              <h2 className="text-lg font-semibold text-card-foreground font-display">Two-factor verification</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Enter the 6-digit code from your authenticator app.</p>
+              <form onSubmit={handleMfaVerify} className="mt-6 space-y-4">
+                <Input
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="123456"
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoFocus
+                  className="bg-background/50 text-center text-lg tracking-[0.5em] font-mono"
+                  required
+                />
+                {error && (
+                  <div className="rounded-lg px-3 py-2 text-sm bg-destructive/10 text-destructive border border-destructive/20">{error}</div>
+                )}
+                <Button type="submit" disabled={loading || mfaCode.length !== 6} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                  {loading ? "Verifying..." : "Verify & continue"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={async () => { await supabase.auth.signOut(); setMfa(null); setMfaCode(""); setError(""); }}
+                  className="w-full text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Cancel and sign out
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
           <h2 className="text-lg font-semibold text-card-foreground font-display">
             {isSignUp ? "Create your account" : "Welcome back"}
           </h2>
