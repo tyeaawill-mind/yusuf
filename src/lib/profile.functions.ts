@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { z } from "zod";
 
 export const getProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -14,8 +15,14 @@ export const getProfile = createServerFn({ method: "GET" })
     return { profile: data ?? null };
   });
 
+const updateProfileSchema = z.object({
+  full_name: z.string().max(100).optional(),
+  assistant_name: z.string().max(50).optional(),
+});
+
 export const updateProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
+  .inputValidator((input) => updateProfileSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: profile, error } = await supabase
@@ -44,8 +51,15 @@ export const getMemories = createServerFn({ method: "GET" })
     return { memories: data ?? [] };
   });
 
+const createMemorySchema = z.object({
+  content: z.string().min(1).max(2000),
+  category: z.string().max(50).optional(),
+  importance: z.number().min(1).max(10).optional(),
+});
+
 export const createMemory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
+  .inputValidator((input) => createMemorySchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: memory, error } = await supabase
