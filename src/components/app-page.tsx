@@ -35,7 +35,7 @@ export default function AppPage() {
   const navigate = useNavigate();
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: useServerFn(getProfile) });
-  const assistantName = profile?.profile?.assistant_name ?? "Aria";
+  const assistantName = profile?.profile?.assistant_name ?? "Yusuf";
   const userName = profile?.profile?.full_name ?? "Tye";
 
   const handleSignOut = async () => {
@@ -395,14 +395,14 @@ function InsightsView() {
         <div className="space-y-2">
           {overdue > 0 && <p className="text-sm text-destructive flex items-center gap-2"><AlertTriangle className="h-3.5 w-3.5" />You have {overdue} overdue task{overdue > 1 ? "s" : ""}. Consider reprioritizing.</p>}
           {pending === 0 && total > 0 && <p className="text-sm text-emerald-400 flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5" />All tasks completed! Excellent work.</p>}
-          {goals.length === 0 && <p className="text-sm text-muted-foreground flex items-center gap-2"><Target className="h-3.5 w-3.5" />No goals set yet. Defining clear goals helps Aria guide you better.</p>}
-          {memories.length === 0 && <p className="text-sm text-muted-foreground flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" />Aria hasn't learned much about you yet. Share your preferences in chat.</p>}
+          {goals.length === 0 && <p className="text-sm text-muted-foreground flex items-center gap-2"><Target className="h-3.5 w-3.5" />No goals set yet. Defining clear goals helps Yusuf guide you better.</p>}
+          {memories.length === 0 && <p className="text-sm text-muted-foreground flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" />Yusuf hasn't learned much about you yet. Share your preferences in chat.</p>}
           {pending > 0 && overdue === 0 && <p className="text-sm text-muted-foreground flex items-center gap-2"><ArrowRight className="h-3.5 w-3.5" />{pending} task{pending > 1 ? "s" : ""} pending. You're on track.</p>}
         </div>
       </div>
       {memories.length > 0 && (
         <div className="rounded-xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Things Aria Remembers</h2>
+          <h2 className="text-sm font-semibold text-foreground mb-3">Things Yusuf Remembers</h2>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {memories.slice(0, 10).map((m) => (
               <div key={m.id} className="flex items-start gap-2 text-sm"><Sparkles className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" /><span className="text-muted-foreground">{m.content}</span></div>

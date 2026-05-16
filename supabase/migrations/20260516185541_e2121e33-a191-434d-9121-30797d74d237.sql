@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ALTER COLUMN assistant_name SET DEFAULT 'Yusuf'; UPDATE public.profiles SET assistant_name='Yusuf' WHERE assistant_name='Aria' OR assistant_name IS NULL;
