@@ -84,9 +84,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Aria — Your Personal AI Assistant" },
-      { name: "description", content: "Aria is your devoted personal assistant. Organize tasks, track goals, and get thoughtful guidance." },
-      { property: "og:title", content: "Aria — Your Personal AI Assistant" },
+      { title: "Yusuf — Your Personal AI Assistant" },
+      { name: "description", content: "Yusuf is your devoted personal assistant. Organize tasks, track goals, and get thoughtful guidance." },
+      { property: "og:title", content: "Yusuf — Your Personal AI Assistant" },
       { property: "og:description", content: "Your devoted personal AI assistant for organizing life and achieving goals." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

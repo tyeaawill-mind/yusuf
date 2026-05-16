@@ -57,7 +57,7 @@ function LoginPage() {
             <Sparkles className="h-7 w-7 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground font-display">
-            Aria
+            Yusuf
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Your devoted personal assistant
@@ -72,7 +72,7 @@ function LoginPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {isSignUp
               ? "This is your private space. Only you can access it."
-              : "Sign in to continue with Aria."}
+              : "Sign in to continue with Yusuf."}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
