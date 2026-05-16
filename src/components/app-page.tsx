@@ -8,9 +8,10 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   MessageSquare, CheckSquare, Target, BarChart3, LogOut, User, Sparkles,
   Menu, X, Send, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
-  ArrowRight, TrendingUp, Lock
+  ArrowRight, TrendingUp, Lock, ShieldCheck
 } from "lucide-react";
 import { VaultView } from "@/components/vault-view";
+import { SecurityView } from "@/components/security-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
