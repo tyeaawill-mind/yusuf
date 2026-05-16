@@ -87,9 +87,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Yusuf — Your Personal AI Assistant" },
       { name: "description", content: "Yusuf is your devoted personal assistant. Organize tasks, track goals, and get thoughtful guidance." },
       { property: "og:title", content: "Yusuf — Your Personal AI Assistant" },
-      { property: "og:description", content: "Your devoted personal AI assistant for organizing life and achieving goals." },
+      { property: "og:description", content: "Yusuf is your devoted personal assistant. Organize tasks, track goals, and get thoughtful guidance." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Yusuf — Your Personal AI Assistant" },
+      { name: "twitter:description", content: "Yusuf is your devoted personal assistant. Organize tasks, track goals, and get thoughtful guidance." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b278f0c0-03d9-454d-9abc-692e9ae2acff/id-preview-43350784--3bf01443-c664-4dd2-b0b8-897b38c844f8.lovable.app-1778958840632.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b278f0c0-03d9-454d-9abc-692e9ae2acff/id-preview-43350784--3bf01443-c664-4dd2-b0b8-897b38c844f8.lovable.app-1778958840632.png" },
     ],
     links: [
       {
