@@ -28,6 +28,7 @@ const navItems = [
   { label: "Todos", icon: CheckSquare, id: "todos" },
   { label: "Goals", icon: Target, id: "goals" },
   { label: "Vault", icon: Lock, id: "vault" },
+  { label: "Security", icon: ShieldCheck, id: "security" },
   { label: "Insights", icon: BarChart3, id: "insights" },
 ];
 
