@@ -18,6 +18,23 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mfa, setMfa] = useState<{ factorId: string; challengeId: string } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+
+  const checkMfaAndContinue = async () => {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const factor = factors?.totp?.find((f) => f.status === "verified");
+      if (factor) {
+        const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId: factor.id });
+        if (chErr || !ch) { setError(chErr?.message ?? "Could not start 2FA challenge"); return; }
+        setMfa({ factorId: factor.id, challengeId: ch.id });
+        return;
+      }
+    }
+    navigate({ to: "/app" });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,18 +51,30 @@ function LoginPage() {
         if (error) throw error;
         setError("Check your email to confirm your account.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/app" });
+        await checkMfaAndContinue();
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMfaVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfa) return;
+    setLoading(true);
+    setError("");
+    const { error } = await supabase.auth.mfa.verify({
+      factorId: mfa.factorId,
+      challengeId: mfa.challengeId,
+      code: mfaCode.trim(),
+    });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    navigate({ to: "/app" });
   };
 
   return (
