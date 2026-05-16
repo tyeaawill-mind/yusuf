@@ -226,6 +226,8 @@ function LoginPage() {
                 : "Need an account? Create one"}
             </button>
           </div>
+            </>
+          )}
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
