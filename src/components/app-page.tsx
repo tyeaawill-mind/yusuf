@@ -88,6 +88,7 @@ export default function AppPage() {
           {activeTab === "todos" && <TodosView />}
           {activeTab === "goals" && <GoalsView />}
           {activeTab === "vault" && <VaultView />}
+          {activeTab === "security" && <SecurityView />}
           {activeTab === "insights" && <InsightsView />}
         </main>
       </div>
