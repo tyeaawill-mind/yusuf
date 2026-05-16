@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_vault: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          password: string
+          site_name: string
+          site_url: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          password: string
+          site_name: string
+          site_url?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          password?: string
+          site_name?: string
+          site_url?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
