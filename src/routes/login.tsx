@@ -18,6 +18,23 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mfa, setMfa] = useState<{ factorId: string; challengeId: string } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+
+  const checkMfaAndContinue = async () => {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const factor = factors?.totp?.find((f) => f.status === "verified");
+      if (factor) {
+        const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId: factor.id });
+        if (chErr || !ch) { setError(chErr?.message ?? "Could not start 2FA challenge"); return; }
+        setMfa({ factorId: factor.id, challengeId: ch.id });
+        return;
+      }
+    }
+    navigate({ to: "/app" });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,18 +51,30 @@ function LoginPage() {
         if (error) throw error;
         setError("Check your email to confirm your account.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/app" });
+        await checkMfaAndContinue();
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMfaVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfa) return;
+    setLoading(true);
+    setError("");
+    const { error } = await supabase.auth.mfa.verify({
+      factorId: mfa.factorId,
+      challengeId: mfa.challengeId,
+      code: mfaCode.trim(),
+    });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    navigate({ to: "/app" });
   };
 
   return (
@@ -66,6 +95,38 @@ function LoginPage() {
 
         {/* Card */}
         <div className="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5">
+          {mfa ? (
+            <>
+              <h2 className="text-lg font-semibold text-card-foreground font-display">Two-factor verification</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Enter the 6-digit code from your authenticator app.</p>
+              <form onSubmit={handleMfaVerify} className="mt-6 space-y-4">
+                <Input
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="123456"
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoFocus
+                  className="bg-background/50 text-center text-lg tracking-[0.5em] font-mono"
+                  required
+                />
+                {error && (
+                  <div className="rounded-lg px-3 py-2 text-sm bg-destructive/10 text-destructive border border-destructive/20">{error}</div>
+                )}
+                <Button type="submit" disabled={loading || mfaCode.length !== 6} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                  {loading ? "Verifying..." : "Verify & continue"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={async () => { await supabase.auth.signOut(); setMfa(null); setMfaCode(""); setError(""); }}
+                  className="w-full text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Cancel and sign out
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
           <h2 className="text-lg font-semibold text-card-foreground font-display">
             {isSignUp ? "Create your account" : "Welcome back"}
           </h2>
@@ -165,6 +226,8 @@ function LoginPage() {
                 : "Need an account? Create one"}
             </button>
           </div>
+            </>
+          )}
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
