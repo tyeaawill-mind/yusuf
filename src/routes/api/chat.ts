@@ -68,7 +68,7 @@ export const Route = createFileRoute("/api/chat")({
           ]);
 
         const userName = profile?.full_name ?? "Tye";
-        const assistantName = profile?.assistant_name ?? "Aria";
+        const assistantName = profile?.assistant_name ?? "Yusuf";
 
         // Build context-rich system prompt
         const todoContext = (todos?.length ?? 0) > 0
