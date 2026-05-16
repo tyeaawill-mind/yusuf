@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -6,7 +7,18 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  useNavigate,
 } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+
+import "@fontsource/space-grotesk/400.css";
+import "@fontsource/space-grotesk/500.css";
+import "@fontsource/space-grotesk/600.css";
+import "@fontsource/space-grotesk/700.css";
+import "@fontsource/dm-sans/400.css";
+import "@fontsource/dm-sans/500.css";
+import "@fontsource/dm-sans/600.css";
+import "@fontsource/dm-sans/700.css";
 
 import appCss from "../styles.css?url";
 
@@ -14,7 +26,7 @@ function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
+        <h1 className="text-7xl font-bold text-foreground font-display">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           The page you're looking for doesn't exist or has been moved.
@@ -72,14 +84,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Aria — Your Personal AI Assistant" },
+      { name: "description", content: "Aria is your devoted personal assistant. Organize tasks, track goals, and get thoughtful guidance." },
+      { property: "og:title", content: "Aria — Your Personal AI Assistant" },
+      { property: "og:description", content: "Your devoted personal AI assistant for organizing life and achieving goals." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -110,6 +120,24 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        router.invalidate();
+        queryClient.invalidateQueries();
+        navigate({ to: "/login" });
+      } else if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+        router.invalidate();
+        queryClient.invalidateQueries();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router, queryClient, navigate]);
 
   return (
     <QueryClientProvider client={queryClient}>
