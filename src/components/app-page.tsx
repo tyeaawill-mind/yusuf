@@ -85,6 +85,7 @@ export default function AppPage() {
           {activeTab === "chat" && <ChatView userName={userName} assistantName={assistantName} />}
           {activeTab === "todos" && <TodosView />}
           {activeTab === "goals" && <GoalsView />}
+          {activeTab === "vault" && <VaultView />}
           {activeTab === "insights" && <InsightsView />}
         </main>
       </div>
