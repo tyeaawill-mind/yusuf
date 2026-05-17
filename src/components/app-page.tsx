@@ -21,7 +21,15 @@ import { getTodos, createTodo, updateTodo, deleteTodo } from "@/lib/todos.functi
 import { getGoals, createGoal, updateGoal, deleteGoal } from "@/lib/goals.functions";
 import { getProfile, getMemories } from "@/lib/profile.functions";
 
-const chatTransport = new DefaultChatTransport({ api: "/api/chat" });
+const chatTransport = new DefaultChatTransport({
+  api: "/api/chat",
+  headers: async () => {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token
+      ? { Authorization: `Bearer ${data.session.access_token}` }
+      : {};
+  },
+});
 
 const navItems = [
   { label: "Chat", icon: MessageSquare, id: "chat" },
