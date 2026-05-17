@@ -23,11 +23,10 @@ import { getProfile, getMemories } from "@/lib/profile.functions";
 
 const chatTransport = new DefaultChatTransport({
   api: "/api/chat",
-  headers: async () => {
+  headers: async (): Promise<Record<string, string>> => {
     const { data } = await supabase.auth.getSession();
-    return data.session?.access_token
-      ? { Authorization: `Bearer ${data.session.access_token}` }
-      : {};
+    const token = data.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
   },
 });
 
