@@ -283,12 +283,23 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
       </div>
       <div className="border-t border-border bg-background/80 backdrop-blur-sm px-4 py-4">
         <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
+          {voiceError && <p className="mb-2 text-xs text-destructive">{voiceError}</p>}
           <div className="flex items-end gap-2 rounded-2xl border border-input bg-card p-2 shadow-sm">
+            <Button type="button" onClick={toggleSpeak} variant="ghost" size="icon"
+              title={speakReplies ? "Mute Yusuf's voice" : "Hear Yusuf's voice"}
+              className="h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:text-foreground">
+              {speakReplies ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
             <Textarea ref={textareaRef} value={chatInput} onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
-              placeholder={`Message ${assistantName}...`}
+              placeholder={isListening ? "Listening…" : `Message ${assistantName}…`}
               className="min-h-[44px] max-h-[160px] resize-none border-0 bg-transparent px-3 py-2.5 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
               rows={1} />
+            <Button type="button" onClick={toggleMic} variant="ghost" size="icon"
+              title={isListening ? "Stop listening" : "Speak to Yusuf"}
+              className={`h-9 w-9 shrink-0 rounded-xl ${isListening ? "bg-destructive/15 text-destructive animate-pulse" : "text-muted-foreground hover:text-foreground"}`}>
+              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
             <Button type="submit" disabled={isLoading || !chatInput.trim()} size="icon" className="h-9 w-9 shrink-0 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
               <Send className="h-4 w-4" />
             </Button>
