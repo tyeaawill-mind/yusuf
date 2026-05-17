@@ -166,8 +166,62 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || isLoading) return;
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     sendMessage({ text: chatInput.trim() });
     setChatInput("");
+  };
+
+  // Speak assistant replies once streaming finishes
+  useEffect(() => {
+    if (!speakReplies || isLoading) return;
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "assistant") return;
+    if (lastSpokenIdRef.current === last.id) return;
+    const text = last.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
+    if (!text) return;
+    lastSpokenIdRef.current = last.id;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1; utter.pitch = 1; utter.volume = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }, [messages, isLoading, speakReplies]);
+
+  useEffect(() => () => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }, []);
+
+  const toggleMic = () => {
+    setVoiceError(null);
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setVoiceError("Voice input isn't supported in this browser. Try Chrome or Edge.");
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = navigator.language || "en-US";
+    rec.onstart = () => setIsListening(true);
+    rec.onend = () => setIsListening(false);
+    rec.onerror = (ev: any) => { setIsListening(false); setVoiceError(ev?.error === "not-allowed" ? "Microphone permission was denied." : `Voice error: ${ev?.error ?? "unknown"}`); };
+    rec.onresult = (ev: any) => {
+      let transcript = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) transcript += ev.results[i][0].transcript;
+      setChatInput((prev) => (prev ? prev + " " : "") + transcript.trim());
+    };
+    recognitionRef.current = rec;
+    try { rec.start(); } catch { /* already started */ }
+  };
+
+  const toggleSpeak = () => {
+    setSpeakReplies((v) => {
+      const next = !v;
+      if (!next && typeof window !== "undefined") window.speechSynthesis?.cancel();
+      return next;
+    });
   };
 
   return (
