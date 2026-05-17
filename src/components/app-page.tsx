@@ -8,7 +8,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   MessageSquare, CheckSquare, Target, BarChart3, LogOut, User, Sparkles,
   Menu, X, Send, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
-  ArrowRight, TrendingUp, Lock, ShieldCheck
+  ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX
 } from "lucide-react";
 import { VaultView } from "@/components/vault-view";
 import { SecurityView } from "@/components/security-view";
@@ -21,7 +21,16 @@ import { getTodos, createTodo, updateTodo, deleteTodo } from "@/lib/todos.functi
 import { getGoals, createGoal, updateGoal, deleteGoal } from "@/lib/goals.functions";
 import { getProfile, getMemories } from "@/lib/profile.functions";
 
-const chatTransport = new DefaultChatTransport({ api: "/api/chat" });
+const chatTransport = new DefaultChatTransport({
+  api: "/api/chat",
+  fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    const headers = new Headers(init?.headers);
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    return fetch(input, { ...init, headers });
+  }) as typeof fetch,
+});
 
 const navItems = [
   { label: "Chat", icon: MessageSquare, id: "chat" },
@@ -100,8 +109,13 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
   const [loadedMessages, setLoadedMessages] = useState<UIMessage[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [speakReplies, setSpeakReplies] = useState(true);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const lastSpokenIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.from("chat_messages").select("*").order("created_at", { ascending: true }).then(({ data }) => {
@@ -152,8 +166,62 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || isLoading) return;
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     sendMessage({ text: chatInput.trim() });
     setChatInput("");
+  };
+
+  // Speak assistant replies once streaming finishes
+  useEffect(() => {
+    if (!speakReplies || isLoading) return;
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "assistant") return;
+    if (lastSpokenIdRef.current === last.id) return;
+    const text = last.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
+    if (!text) return;
+    lastSpokenIdRef.current = last.id;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1; utter.pitch = 1; utter.volume = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }, [messages, isLoading, speakReplies]);
+
+  useEffect(() => () => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }, []);
+
+  const toggleMic = () => {
+    setVoiceError(null);
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setVoiceError("Voice input isn't supported in this browser. Try Chrome or Edge.");
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = navigator.language || "en-US";
+    rec.onstart = () => setIsListening(true);
+    rec.onend = () => setIsListening(false);
+    rec.onerror = (ev: any) => { setIsListening(false); setVoiceError(ev?.error === "not-allowed" ? "Microphone permission was denied." : `Voice error: ${ev?.error ?? "unknown"}`); };
+    rec.onresult = (ev: any) => {
+      let transcript = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) transcript += ev.results[i][0].transcript;
+      setChatInput((prev) => (prev ? prev + " " : "") + transcript.trim());
+    };
+    recognitionRef.current = rec;
+    try { rec.start(); } catch { /* already started */ }
+  };
+
+  const toggleSpeak = () => {
+    setSpeakReplies((v) => {
+      const next = !v;
+      if (!next && typeof window !== "undefined") window.speechSynthesis?.cancel();
+      return next;
+    });
   };
 
   return (
@@ -215,12 +283,23 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
       </div>
       <div className="border-t border-border bg-background/80 backdrop-blur-sm px-4 py-4">
         <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
+          {voiceError && <p className="mb-2 text-xs text-destructive">{voiceError}</p>}
           <div className="flex items-end gap-2 rounded-2xl border border-input bg-card p-2 shadow-sm">
+            <Button type="button" onClick={toggleSpeak} variant="ghost" size="icon"
+              title={speakReplies ? "Mute Yusuf's voice" : "Hear Yusuf's voice"}
+              className="h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:text-foreground">
+              {speakReplies ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
             <Textarea ref={textareaRef} value={chatInput} onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
-              placeholder={`Message ${assistantName}...`}
+              placeholder={isListening ? "Listening…" : `Message ${assistantName}…`}
               className="min-h-[44px] max-h-[160px] resize-none border-0 bg-transparent px-3 py-2.5 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
               rows={1} />
+            <Button type="button" onClick={toggleMic} variant="ghost" size="icon"
+              title={isListening ? "Stop listening" : "Speak to Yusuf"}
+              className={`h-9 w-9 shrink-0 rounded-xl ${isListening ? "bg-destructive/15 text-destructive animate-pulse" : "text-muted-foreground hover:text-foreground"}`}>
+              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
             <Button type="submit" disabled={isLoading || !chatInput.trim()} size="icon" className="h-9 w-9 shrink-0 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
               <Send className="h-4 w-4" />
             </Button>
