@@ -109,8 +109,13 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
   const [loadedMessages, setLoadedMessages] = useState<UIMessage[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [speakReplies, setSpeakReplies] = useState(true);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const lastSpokenIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.from("chat_messages").select("*").order("created_at", { ascending: true }).then(({ data }) => {
