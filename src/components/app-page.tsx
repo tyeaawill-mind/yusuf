@@ -324,8 +324,51 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
       </div>
       <div className="border-t border-border bg-background/80 backdrop-blur-sm px-4 py-4">
         <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
+          {chatError && (
+            <div className="mb-2 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span className="break-words">{chatError}</span>
+            </div>
+          )}
           {voiceError && <p className="mb-2 text-xs text-destructive">{voiceError}</p>}
+          {showVoiceSettings && (
+            <div className="mb-2 rounded-xl border border-border bg-card p-3 space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-foreground">Voice settings</span>
+                <button type="button" onClick={() => setShowVoiceSettings(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="space-y-1 block">
+                  <span className="text-muted-foreground">Mic language</span>
+                  <select value={micLang} onChange={(e) => setMicLang(e.target.value)} className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs">
+                    {LANG_OPTIONS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+                  </select>
+                </label>
+                <label className="space-y-1 block">
+                  <span className="text-muted-foreground">Yusuf's language</span>
+                  <select value={ttsLang} onChange={(e) => { setTtsLang(e.target.value); setTtsVoiceURI(""); }} className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs">
+                    {LANG_OPTIONS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+                  </select>
+                </label>
+                <label className="space-y-1 block">
+                  <span className="text-muted-foreground">Yusuf's voice</span>
+                  <select value={ttsVoiceURI} onChange={(e) => setTtsVoiceURI(e.target.value)} className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs">
+                    <option value="">System default</option>
+                    {availableVoices
+                      .filter((v) => v.lang.toLowerCase().startsWith(ttsLang.slice(0, 2).toLowerCase()))
+                      .map((v) => <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>)}
+                  </select>
+                </label>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Voices come from your browser/OS. Chrome and Edge offer the widest range.</p>
+            </div>
+          )}
           <div className="flex items-end gap-2 rounded-2xl border border-input bg-card p-2 shadow-sm">
+            <Button type="button" onClick={() => setShowVoiceSettings((v) => !v)} variant="ghost" size="icon"
+              title="Voice settings"
+              className="h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:text-foreground">
+              <SettingsIcon className="h-4 w-4" />
+            </Button>
             <Button type="button" onClick={toggleSpeak} variant="ghost" size="icon"
               title={speakReplies ? "Mute Yusuf's voice" : "Hear Yusuf's voice"}
               className="h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:text-foreground">
@@ -337,7 +380,7 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
               className="min-h-[44px] max-h-[160px] resize-none border-0 bg-transparent px-3 py-2.5 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
               rows={1} />
             <Button type="button" onClick={toggleMic} variant="ghost" size="icon"
-              title={isListening ? "Stop listening" : "Speak to Yusuf"}
+              title={isListening ? "Stop listening" : `Speak (${micLang})`}
               className={`h-9 w-9 shrink-0 rounded-xl ${isListening ? "bg-destructive/15 text-destructive animate-pulse" : "text-muted-foreground hover:text-foreground"}`}>
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </Button>
