@@ -168,6 +168,10 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
     id: "default",
     messages: loadedMessages,
     transport: chatTransport,
+    onError: (err) => {
+      console.error("[Yusuf chat error]", err);
+      setChatError(err?.message || "Yusuf couldn't reach the AI gateway. Please try again.");
+    },
   });
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
