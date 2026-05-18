@@ -202,6 +202,7 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || isLoading) return;
+    setChatError(null);
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     sendMessage({ text: chatInput.trim() });
     setChatInput("");
@@ -219,9 +220,12 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
     lastSpokenIdRef.current = last.id;
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 1; utter.pitch = 1; utter.volume = 1;
+    utter.lang = ttsLang;
+    const voice = availableVoices.find((v) => v.voiceURI === ttsVoiceURI);
+    if (voice) utter.voice = voice;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utter);
-  }, [messages, isLoading, speakReplies]);
+  }, [messages, isLoading, speakReplies, ttsLang, ttsVoiceURI, availableVoices]);
 
   useEffect(() => () => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }, []);
 
@@ -239,7 +243,7 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
     const rec = new SR();
     rec.continuous = false;
     rec.interimResults = true;
-    rec.lang = navigator.language || "en-US";
+    rec.lang = micLang;
     rec.onstart = () => setIsListening(true);
     rec.onend = () => setIsListening(false);
     rec.onerror = (ev: any) => { setIsListening(false); setVoiceError(ev?.error === "not-allowed" ? "Microphone permission was denied." : `Voice error: ${ev?.error ?? "unknown"}`); };
