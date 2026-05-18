@@ -8,7 +8,8 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   MessageSquare, CheckSquare, Target, BarChart3, LogOut, User, Sparkles,
   Menu, X, Send, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
-  ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX
+  ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX,
+  Settings as SettingsIcon, AlertCircle
 } from "lucide-react";
 import { VaultView } from "@/components/vault-view";
 import { SecurityView } from "@/components/security-view";
@@ -105,6 +106,20 @@ export default function AppPage() {
   );
 }
 
+const LANG_OPTIONS = [
+  { code: "en-US", label: "English (US)" },
+  { code: "en-GB", label: "English (UK)" },
+  { code: "bn-BD", label: "বাংলা (Bangladesh)" },
+  { code: "bn-IN", label: "বাংলা (India)" },
+  { code: "ar-SA", label: "العربية" },
+  { code: "ur-PK", label: "اُردُو" },
+  { code: "hi-IN", label: "हिन्दी" },
+  { code: "zh-CN", label: "中文 (普通话)" },
+  { code: "he-IL", label: "עברית" },
+  { code: "es-ES", label: "Español" },
+  { code: "fr-FR", label: "Français" },
+];
+
 function ChatView({ userName, assistantName }: { userName: string; assistantName: string }) {
   const [loadedMessages, setLoadedMessages] = useState<UIMessage[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -112,10 +127,28 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
   const [isListening, setIsListening] = useState(false);
   const [speakReplies, setSpeakReplies] = useState(true);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [micLang, setMicLang] = useState<string>(() => (typeof window !== "undefined" && localStorage.getItem("yusuf.micLang")) || "en-US");
+  const [ttsLang, setTtsLang] = useState<string>(() => (typeof window !== "undefined" && localStorage.getItem("yusuf.ttsLang")) || "en-US");
+  const [ttsVoiceURI, setTtsVoiceURI] = useState<string>(() => (typeof window !== "undefined" && localStorage.getItem("yusuf.ttsVoice")) || "");
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const lastSpokenIdRef = useRef<string | null>(null);
+
+  useEffect(() => { localStorage.setItem("yusuf.micLang", micLang); }, [micLang]);
+  useEffect(() => { localStorage.setItem("yusuf.ttsLang", ttsLang); }, [ttsLang]);
+  useEffect(() => { localStorage.setItem("yusuf.ttsVoice", ttsVoiceURI); }, [ttsVoiceURI]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const load = () => setAvailableVoices(window.speechSynthesis.getVoices());
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+    return () => { if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
 
   useEffect(() => {
     supabase.from("chat_messages").select("*").order("created_at", { ascending: true }).then(({ data }) => {
@@ -136,6 +169,10 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
     id: "default",
     messages: loadedMessages,
     transport: chatTransport,
+    onError: (err) => {
+      console.error("[Yusuf chat error]", err);
+      setChatError(err?.message || "Yusuf couldn't reach the AI gateway. Please try again.");
+    },
   });
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
@@ -166,6 +203,7 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || isLoading) return;
+    setChatError(null);
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     sendMessage({ text: chatInput.trim() });
     setChatInput("");
@@ -183,9 +221,12 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
     lastSpokenIdRef.current = last.id;
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 1; utter.pitch = 1; utter.volume = 1;
+    utter.lang = ttsLang;
+    const voice = availableVoices.find((v) => v.voiceURI === ttsVoiceURI);
+    if (voice) utter.voice = voice;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utter);
-  }, [messages, isLoading, speakReplies]);
+  }, [messages, isLoading, speakReplies, ttsLang, ttsVoiceURI, availableVoices]);
 
   useEffect(() => () => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }, []);
 
@@ -203,7 +244,7 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
     const rec = new SR();
     rec.continuous = false;
     rec.interimResults = true;
-    rec.lang = navigator.language || "en-US";
+    rec.lang = micLang;
     rec.onstart = () => setIsListening(true);
     rec.onend = () => setIsListening(false);
     rec.onerror = (ev: any) => { setIsListening(false); setVoiceError(ev?.error === "not-allowed" ? "Microphone permission was denied." : `Voice error: ${ev?.error ?? "unknown"}`); };
@@ -283,8 +324,51 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
       </div>
       <div className="border-t border-border bg-background/80 backdrop-blur-sm px-4 py-4">
         <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
+          {chatError && (
+            <div className="mb-2 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span className="break-words">{chatError}</span>
+            </div>
+          )}
           {voiceError && <p className="mb-2 text-xs text-destructive">{voiceError}</p>}
+          {showVoiceSettings && (
+            <div className="mb-2 rounded-xl border border-border bg-card p-3 space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-foreground">Voice settings</span>
+                <button type="button" onClick={() => setShowVoiceSettings(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="space-y-1 block">
+                  <span className="text-muted-foreground">Mic language</span>
+                  <select value={micLang} onChange={(e) => setMicLang(e.target.value)} className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs">
+                    {LANG_OPTIONS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+                  </select>
+                </label>
+                <label className="space-y-1 block">
+                  <span className="text-muted-foreground">Yusuf's language</span>
+                  <select value={ttsLang} onChange={(e) => { setTtsLang(e.target.value); setTtsVoiceURI(""); }} className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs">
+                    {LANG_OPTIONS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+                  </select>
+                </label>
+                <label className="space-y-1 block">
+                  <span className="text-muted-foreground">Yusuf's voice</span>
+                  <select value={ttsVoiceURI} onChange={(e) => setTtsVoiceURI(e.target.value)} className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs">
+                    <option value="">System default</option>
+                    {availableVoices
+                      .filter((v) => v.lang.toLowerCase().startsWith(ttsLang.slice(0, 2).toLowerCase()))
+                      .map((v) => <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>)}
+                  </select>
+                </label>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Voices come from your browser/OS. Chrome and Edge offer the widest range.</p>
+            </div>
+          )}
           <div className="flex items-end gap-2 rounded-2xl border border-input bg-card p-2 shadow-sm">
+            <Button type="button" onClick={() => setShowVoiceSettings((v) => !v)} variant="ghost" size="icon"
+              title="Voice settings"
+              className="h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:text-foreground">
+              <SettingsIcon className="h-4 w-4" />
+            </Button>
             <Button type="button" onClick={toggleSpeak} variant="ghost" size="icon"
               title={speakReplies ? "Mute Yusuf's voice" : "Hear Yusuf's voice"}
               className="h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:text-foreground">
@@ -296,7 +380,7 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
               className="min-h-[44px] max-h-[160px] resize-none border-0 bg-transparent px-3 py-2.5 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
               rows={1} />
             <Button type="button" onClick={toggleMic} variant="ghost" size="icon"
-              title={isListening ? "Stop listening" : "Speak to Yusuf"}
+              title={isListening ? "Stop listening" : `Speak (${micLang})`}
               className={`h-9 w-9 shrink-0 rounded-xl ${isListening ? "bg-destructive/15 text-destructive animate-pulse" : "text-muted-foreground hover:text-foreground"}`}>
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </Button>
