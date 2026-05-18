@@ -105,6 +105,20 @@ export default function AppPage() {
   );
 }
 
+const LANG_OPTIONS = [
+  { code: "en-US", label: "English (US)" },
+  { code: "en-GB", label: "English (UK)" },
+  { code: "bn-BD", label: "বাংলা (Bangladesh)" },
+  { code: "bn-IN", label: "বাংলা (India)" },
+  { code: "ar-SA", label: "العربية" },
+  { code: "ur-PK", label: "اُردُو" },
+  { code: "hi-IN", label: "हिन्दी" },
+  { code: "zh-CN", label: "中文 (普通话)" },
+  { code: "he-IL", label: "עברית" },
+  { code: "es-ES", label: "Español" },
+  { code: "fr-FR", label: "Français" },
+];
+
 function ChatView({ userName, assistantName }: { userName: string; assistantName: string }) {
   const [loadedMessages, setLoadedMessages] = useState<UIMessage[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -112,10 +126,28 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
   const [isListening, setIsListening] = useState(false);
   const [speakReplies, setSpeakReplies] = useState(true);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [micLang, setMicLang] = useState<string>(() => (typeof window !== "undefined" && localStorage.getItem("yusuf.micLang")) || "en-US");
+  const [ttsLang, setTtsLang] = useState<string>(() => (typeof window !== "undefined" && localStorage.getItem("yusuf.ttsLang")) || "en-US");
+  const [ttsVoiceURI, setTtsVoiceURI] = useState<string>(() => (typeof window !== "undefined" && localStorage.getItem("yusuf.ttsVoice")) || "");
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const lastSpokenIdRef = useRef<string | null>(null);
+
+  useEffect(() => { localStorage.setItem("yusuf.micLang", micLang); }, [micLang]);
+  useEffect(() => { localStorage.setItem("yusuf.ttsLang", ttsLang); }, [ttsLang]);
+  useEffect(() => { localStorage.setItem("yusuf.ttsVoice", ttsVoiceURI); }, [ttsVoiceURI]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const load = () => setAvailableVoices(window.speechSynthesis.getVoices());
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+    return () => { if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
 
   useEffect(() => {
     supabase.from("chat_messages").select("*").order("created_at", { ascending: true }).then(({ data }) => {
