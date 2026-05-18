@@ -8,7 +8,8 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   MessageSquare, CheckSquare, Target, BarChart3, LogOut, User, Sparkles,
   Menu, X, Send, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
-  ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX
+  ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX,
+  Settings as SettingsIcon, AlertCircle
 } from "lucide-react";
 import { VaultView } from "@/components/vault-view";
 import { SecurityView } from "@/components/security-view";
