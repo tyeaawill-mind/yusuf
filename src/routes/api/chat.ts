@@ -43,7 +43,7 @@ export const Route = createFileRoute("/api/chat")({
         const userId = claimsData.claims.sub;
 
         // Fetch user's context
-        const [{ data: profile }, { data: todos }, { data: goals }, { data: memories }] =
+        const [{ data: profile }, { data: todos }, { data: goals }, { data: memories }, { data: files }] =
           await Promise.all([
             supabase.from("profiles").select("*").eq("user_id", userId).single(),
             supabase
@@ -65,6 +65,12 @@ export const Route = createFileRoute("/api/chat")({
               .eq("user_id", userId)
               .order("importance", { ascending: false })
               .limit(15),
+            supabase
+              .from("files")
+              .select("id,name,mime_type,summary,created_at")
+              .eq("user_id", userId)
+              .order("created_at", { ascending: false })
+              .limit(20),
           ]);
 
         const userName = profile?.full_name ?? "Tye";
