@@ -38,6 +38,7 @@ const navItems = [
   { label: "Chat", icon: MessageSquare, id: "chat" },
   { label: "Todos", icon: CheckSquare, id: "todos" },
   { label: "Goals", icon: Target, id: "goals" },
+  { label: "Files", icon: FolderOpen, id: "files" },
   { label: "Vault", icon: Lock, id: "vault" },
   { label: "Security", icon: ShieldCheck, id: "security" },
   { label: "Insights", icon: BarChart3, id: "insights" },
