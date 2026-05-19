@@ -9,10 +9,11 @@ import {
   MessageSquare, CheckSquare, Target, BarChart3, LogOut, User, Sparkles,
   Menu, X, Send, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
   ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX,
-  Settings as SettingsIcon, AlertCircle
+  Settings as SettingsIcon, AlertCircle, FolderOpen
 } from "lucide-react";
 import { VaultView } from "@/components/vault-view";
 import { SecurityView } from "@/components/security-view";
+import { FilesView } from "@/components/files-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
