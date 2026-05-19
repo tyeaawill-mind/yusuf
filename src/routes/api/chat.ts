@@ -129,7 +129,7 @@ Your role:
 - Keep responses concise but warm — you're efficient, not robotic
 - Address ${userName} by name naturally
 
-Context about ${userName}:${memoryContext}${todoContext}${goalContext}
+Context about ${userName}:${memoryContext}${todoContext}${goalContext}${fileContext}
 
 If ${userName} mentions creating a task or goal, acknowledge it and suggest follow-up questions to make it concrete. If they ask about their progress or what's pending, reference the context above. If no context is available, ask thoughtful questions to learn about ${userName}'s priorities.`;
 
