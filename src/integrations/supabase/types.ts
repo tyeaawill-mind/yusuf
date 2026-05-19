@@ -80,6 +80,42 @@ export type Database = {
         }
         Relationships: []
       }
+      files: {
+        Row: {
+          created_at: string
+          id: string
+          mime_type: string
+          name: string
+          size_bytes: number
+          storage_path: string
+          summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mime_type: string
+          name: string
+          size_bytes?: number
+          storage_path: string
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mime_type?: string
+          name?: string
+          size_bytes?: number
+          storage_path?: string
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
           category: string | null

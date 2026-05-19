@@ -43,7 +43,7 @@ export const Route = createFileRoute("/api/chat")({
         const userId = claimsData.claims.sub;
 
         // Fetch user's context
-        const [{ data: profile }, { data: todos }, { data: goals }, { data: memories }] =
+        const [{ data: profile }, { data: todos }, { data: goals }, { data: memories }, { data: files }] =
           await Promise.all([
             supabase.from("profiles").select("*").eq("user_id", userId).single(),
             supabase
@@ -65,6 +65,12 @@ export const Route = createFileRoute("/api/chat")({
               .eq("user_id", userId)
               .order("importance", { ascending: false })
               .limit(15),
+            supabase
+              .from("files")
+              .select("id,name,mime_type,summary,created_at")
+              .eq("user_id", userId)
+              .order("created_at", { ascending: false })
+              .limit(20),
           ]);
 
         const userName = profile?.full_name ?? "Tye";
@@ -81,6 +87,10 @@ export const Route = createFileRoute("/api/chat")({
 
         const memoryContext = (memories?.length ?? 0) > 0
           ? `\n\nTHINGS I REMEMBER ABOUT ${userName.toUpperCase()}:\n${memories!.map((m) => `- ${m.content}`).join("\n")}`
+          : "";
+
+        const fileContext = (files?.length ?? 0) > 0
+          ? `\n\n${userName.toUpperCase()}'S FILE LIBRARY (reference by name when relevant):\n${files!.map((f) => `- "${f.name}" (${f.mime_type})${f.summary ? `\n   Summary: ${f.summary.slice(0, 600)}` : " — not yet summarized"}`).join("\n")}`
           : "";
 
         const systemPrompt = `You are ${assistantName}, a devoted personal assistant and secretary for ${userName}. You are warm, professional, perceptive, and genuinely invested in helping ${userName} succeed. You speak with the polish of an executive assistant who has worked alongside them for years.
@@ -119,7 +129,7 @@ Your role:
 - Keep responses concise but warm — you're efficient, not robotic
 - Address ${userName} by name naturally
 
-Context about ${userName}:${memoryContext}${todoContext}${goalContext}
+Context about ${userName}:${memoryContext}${todoContext}${goalContext}${fileContext}
 
 If ${userName} mentions creating a task or goal, acknowledge it and suggest follow-up questions to make it concrete. If they ask about their progress or what's pending, reference the context above. If no context is available, ask thoughtful questions to learn about ${userName}'s priorities.`;
 
