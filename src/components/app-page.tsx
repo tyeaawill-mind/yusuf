@@ -99,6 +99,7 @@ export default function AppPage() {
           {activeTab === "chat" && <ChatView userName={userName} assistantName={assistantName} />}
           {activeTab === "todos" && <TodosView />}
           {activeTab === "goals" && <GoalsView />}
+          {activeTab === "files" && <FilesView />}
           {activeTab === "vault" && <VaultView />}
           {activeTab === "security" && <SecurityView />}
           {activeTab === "insights" && <InsightsView />}
