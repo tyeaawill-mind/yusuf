@@ -147,7 +147,17 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
-    const load = () => setAvailableVoices(window.speechSynthesis.getVoices());
+    const load = () => {
+      const voices = window.speechSynthesis.getVoices();
+      setAvailableVoices(voices);
+      if (!localStorage.getItem("yusuf.ttsVoice") && voices.length) {
+        const george =
+          voices.find((v) => /george/i.test(v.name)) ||
+          voices.find((v) => /uk english male|daniel|google uk english male/i.test(v.name)) ||
+          voices.find((v) => /en-GB/i.test(v.lang) && /male/i.test(v.name));
+        if (george) setTtsVoiceURI(george.voiceURI);
+      }
+    };
     load();
     window.speechSynthesis.onvoiceschanged = load;
     return () => { if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = null; };
