@@ -9,11 +9,12 @@ import {
   MessageSquare, CheckSquare, Target, BarChart3, LogOut, User, Sparkles,
   Menu, X, Send, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
   ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX,
-  Settings as SettingsIcon, AlertCircle, FolderOpen
+  Settings as SettingsIcon, AlertCircle, FolderOpen, Newspaper
 } from "lucide-react";
 import { VaultView } from "@/components/vault-view";
 import { SecurityView } from "@/components/security-view";
 import { FilesView } from "@/components/files-view";
+import { BriefingsView } from "@/components/briefings-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +37,7 @@ const chatTransport = new DefaultChatTransport({
 
 const navItems = [
   { label: "Chat", icon: MessageSquare, id: "chat" },
+  { label: "Briefings", icon: Newspaper, id: "briefings" },
   { label: "Todos", icon: CheckSquare, id: "todos" },
   { label: "Goals", icon: Target, id: "goals" },
   { label: "Files", icon: FolderOpen, id: "files" },
@@ -97,6 +99,7 @@ export default function AppPage() {
         </div>
         <main className="flex-1 overflow-auto">
           {activeTab === "chat" && <ChatView userName={userName} assistantName={assistantName} />}
+          {activeTab === "briefings" && <BriefingsView />}
           {activeTab === "todos" && <TodosView />}
           {activeTab === "goals" && <GoalsView />}
           {activeTab === "files" && <FilesView />}
