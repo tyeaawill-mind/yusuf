@@ -121,7 +121,7 @@ export const generateBriefingNow = createServerFn({ method: "POST" })
         user_id: userId,
         slot: "manual",
         local_date,
-        items: result.items,
+        items: result.items as any,
         intro: result.intro,
       })
       .select()
