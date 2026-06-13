@@ -53,6 +53,81 @@ export type Database = {
         }
         Relationships: []
       }
+      briefing_preferences: {
+        Row: {
+          created_at: string
+          email_delivery: boolean
+          enabled: boolean
+          language: string
+          max_items: number
+          sources: string[]
+          timezone: string
+          topics: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_delivery?: boolean
+          enabled?: boolean
+          language?: string
+          max_items?: number
+          sources?: string[]
+          timezone?: string
+          topics?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_delivery?: boolean
+          enabled?: boolean
+          language?: string
+          max_items?: number
+          sources?: string[]
+          timezone?: string
+          topics?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      briefings: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          intro: string | null
+          items: Json
+          local_date: string
+          slot: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          intro?: string | null
+          items?: Json
+          local_date: string
+          slot: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          intro?: string | null
+          items?: Json
+          local_date?: string
+          slot?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
