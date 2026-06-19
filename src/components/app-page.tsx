@@ -102,6 +102,7 @@ export default function AppPage() {
         <main className="flex-1 overflow-auto">
           {activeTab === "chat" && <ChatView userName={userName} assistantName={assistantName} />}
           {activeTab === "briefings" && <BriefingsView />}
+          {activeTab === "mail" && <MailView />}
           {activeTab === "todos" && <TodosView />}
           {activeTab === "goals" && <GoalsView />}
           {activeTab === "files" && <FilesView />}
