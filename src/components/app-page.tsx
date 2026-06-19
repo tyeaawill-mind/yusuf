@@ -39,6 +39,7 @@ const chatTransport = new DefaultChatTransport({
 const navItems = [
   { label: "Chat", icon: MessageSquare, id: "chat" },
   { label: "Briefings", icon: Newspaper, id: "briefings" },
+  { label: "Mail", icon: Mail, id: "mail" },
   { label: "Todos", icon: CheckSquare, id: "todos" },
   { label: "Goals", icon: Target, id: "goals" },
   { label: "Files", icon: FolderOpen, id: "files" },
