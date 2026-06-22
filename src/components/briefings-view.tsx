@@ -160,6 +160,7 @@ function SettingsPanel({ prefs, onSaved }: { prefs: any; onSaved: () => void }) 
   const [sources, setSources] = useState<string>((prefs.sources ?? []).join("\n"));
   const [topics, setTopics] = useState<string>((prefs.topics ?? []).join("\n"));
   const [emailDelivery, setEmailDelivery] = useState<boolean>(prefs.email_delivery);
+  const [recipientEmail, setRecipientEmail] = useState<string>(prefs.recipient_email ?? "");
 
   const updFn = useServerFn(updateBriefingPreferences);
   const saveMut = useMutation({
@@ -172,6 +173,7 @@ function SettingsPanel({ prefs, onSaved }: { prefs: any; onSaved: () => void }) 
           sources: sources.split("\n").map((s) => s.trim()).filter(Boolean),
           topics: topics.split("\n").map((s) => s.trim()).filter(Boolean),
           email_delivery: emailDelivery,
+          recipient_email: recipientEmail.trim() ? recipientEmail.trim() : null,
         },
       }),
     onSuccess: () => onSaved(),
