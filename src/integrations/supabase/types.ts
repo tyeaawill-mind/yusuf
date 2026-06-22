@@ -60,6 +60,7 @@ export type Database = {
           enabled: boolean
           language: string
           max_items: number
+          recipient_email: string | null
           sources: string[]
           timezone: string
           topics: string[]
@@ -72,6 +73,7 @@ export type Database = {
           enabled?: boolean
           language?: string
           max_items?: number
+          recipient_email?: string | null
           sources?: string[]
           timezone?: string
           topics?: string[]
@@ -84,6 +86,7 @@ export type Database = {
           enabled?: boolean
           language?: string
           max_items?: number
+          recipient_email?: string | null
           sources?: string[]
           timezone?: string
           topics?: string[]
