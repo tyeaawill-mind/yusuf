@@ -34,6 +34,7 @@ export const updateBriefingPreferences = createServerFn({ method: "POST" })
         language: z.enum(["en", "bn", "auto"]).optional(),
         max_items: z.number().int().min(1).max(25).optional(),
         email_delivery: z.boolean().optional(),
+        recipient_email: z.string().email().max(254).nullable().optional(),
       })
       .parse(input),
   )
