@@ -213,6 +213,10 @@ function SettingsPanel({ prefs, onSaved }: { prefs: any; onSaved: () => void }) 
           />
         </div>
         <div className="sm:col-span-2">
+          <label className="mb-1 block text-xs text-muted-foreground">Recipient email (for daily 8am delivery)</label>
+          <Input type="email" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} placeholder="name@example.com" />
+        </div>
+        <div className="sm:col-span-2">
           <label className="mb-1 block text-xs text-muted-foreground">Sources (one domain per line)</label>
           <Textarea rows={6} value={sources} onChange={(e) => setSources(e.target.value)} />
         </div>
