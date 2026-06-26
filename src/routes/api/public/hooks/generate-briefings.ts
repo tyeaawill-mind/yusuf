@@ -19,6 +19,7 @@ function buildEmailHtml(intro: string, items: BriefingItem[], localDate: string)
           <a href="${escapeHtml(it.url)}" style="color:#0b66c2;text-decoration:none;font-weight:600;font-size:16px;">${escapeHtml(it.headline)}</a>
           <div style="color:#666;font-size:12px;margin:2px 0 6px;">${escapeHtml(it.source ?? "")}</div>
           <div style="color:#222;font-size:14px;line-height:1.5;">${escapeHtml(it.summary)}</div>
+          <div style="margin-top:6px;font-size:12px;"><a href="${escapeHtml(it.url)}" style="color:#0b66c2;">Source: ${escapeHtml(it.url)}</a></div>
         </li>`,
     )
     .join("");
@@ -31,7 +32,7 @@ function buildEmailHtml(intro: string, items: BriefingItem[], localDate: string)
 }
 
 function buildEmailText(intro: string, items: BriefingItem[], localDate: string): string {
-  const lines = items.map((it, i) => `${i + 1}. ${it.headline}\n   ${it.source ?? ""}\n   ${it.summary}\n   ${it.url}`).join("\n\n");
+  const lines = items.map((it, i) => `${i + 1}. ${it.headline}\n   ${it.source ?? ""}\n   ${it.summary}\n   Source: ${it.url}`).join("\n\n");
   return `Daily briefing — ${localDate}\n\n${intro}\n\n${lines}\n\n— Yusuf`;
 }
 
