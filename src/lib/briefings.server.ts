@@ -71,10 +71,26 @@ export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: stri
         ? "Write headlines and summaries in English."
         : "Write each headline and summary in the same language as the article (Bengali stays in Bengali, English stays in English).";
 
-  // Build a few focused queries combining top topics and a site: filter slice.
+  // Build queries that fan out across ALL configured sources by chunking them,
+  // so a comprehensive directory of Bangladeshi outlets actually gets scanned.
+  const CHUNK = 15;
+  const sourceChunks: string[][] = [];
+  for (let i = 0; i < prefs.sources.length; i += CHUNK) {
+    sourceChunks.push(prefs.sources.slice(i, i + CHUNK));
+  }
+  if (sourceChunks.length === 0) sourceChunks.push([]);
   const topTopics = prefs.topics.slice(0, 8);
-  const sitesQuery = prefs.sources.slice(0, 12).map((s) => `site:${s}`).join(" OR ");
-  const queries = topTopics.slice(0, 4).map((t) => `(${sitesQuery}) "${t}"`);
+  const queries: string[] = [];
+  topTopics.slice(0, 6).forEach((t, ti) => {
+    const chunk = sourceChunks[ti % sourceChunks.length];
+    const sitesQuery = chunk.map((s) => `site:${s}`).join(" OR ");
+    queries.push(sitesQuery ? `(${sitesQuery}) "${t}"` : `"${t}" Bangladesh`);
+  });
+  // Also run one "open web" query per top topic to catch informal sources,
+  // Facebook posts, YouTube videos, and outlets not in the directory.
+  topTopics.slice(0, 2).forEach((t) => {
+    queries.push(`"${t}" Bangladesh corruption OR দুর্নীতি`);
+  });
 
   const allHits: SearchHit[] = [];
   for (const q of queries) {
