@@ -125,7 +125,7 @@ export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: stri
 
   const system = `You are Yusuf, a personal news editor for the user. You are reviewing Bangladeshi news coverage focused on corruption, money laundering, and financial irregularities. Group near-duplicate articles. Keep only stories that are clearly on-topic. Rank by importance/freshness. Cap at ${prefs.max_items} items. ${langInstruction} Each summary must be EXACTLY five sentences. Always include the article URL as the source link. Pick an image_url from the article's IMAGE field when present, otherwise leave it null. Never invent facts not present in the article content. Output STRICT JSON only.`;
 
-  const userMsg = `Articles found today:\n\n${corpus}\n\nReturn JSON of shape:\n{\n  "intro": "1 short sentence framing today's briefing",\n  "items": [\n    { "headline": "...", "summary": "Three. Sentences. Here.", "url": "...", "image_url": "..." | null, "source": "domain.com" }\n  ]\n}`;
+  const userMsg = `Articles found today:\n\n${corpus}\n\nReturn JSON of shape:\n{\n  "intro": "1 short sentence framing today's briefing",\n  "items": [\n    { "headline": "...", "summary": "Five. Sentences. Here. Exactly. Five.", "url": "...", "image_url": "..." | null, "source": "domain.com" }\n  ]\n}`;
 
   const { text } = await generateText({
     model,
