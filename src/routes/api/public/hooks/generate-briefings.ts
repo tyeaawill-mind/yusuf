@@ -164,6 +164,40 @@ export const Route = createFileRoute("/api/public/hooks/generate-briefings")({
               await sendBriefingEmail(recipient, `Daily briefing — ${local_date}`, html, text);
               emailed = true;
             }
+
+            // Auto-expand sources directory from hostnames discovered in today's items.
+            try {
+              const existing: string[] = Array.isArray(prefs.sources) ? prefs.sources : [];
+              const existingSet = new Set(existing.map((s) => s.toLowerCase()));
+              const discovered: string[] = [];
+              for (const it of result.items) {
+                try {
+                  const host = new URL(it.url).hostname.replace(/^www\./, "").toLowerCase();
+                  if (host && !existingSet.has(host) && !discovered.includes(host)) discovered.push(host);
+                } catch {}
+              }
+              if (discovered.length > 0) {
+                const prevCount = existing.length;
+                const merged = [...existing, ...discovered];
+                const newCount = merged.length;
+                await supabase
+                  .from("briefing_preferences")
+                  .update({ sources: merged })
+                  .eq("user_id", prefs.user_id);
+                if (recipient && prevCount < 100 && newCount >= 100) {
+                  const notice = `<p>Yusuf's briefing directory has reached <strong>${newCount}</strong> sources.</p><p>Newly added today: ${discovered.map((d) => escapeHtml(d)).join(", ")}</p>`;
+                  await sendBriefingEmail(
+                    recipient,
+                    `Yusuf: briefing directory reached ${newCount} sources`,
+                    `<!doctype html><html><body style="font-family:Arial,sans-serif;padding:16px;">${notice}</body></html>`,
+                    `Yusuf's briefing directory has reached ${newCount} sources.\nNewly added: ${discovered.join(", ")}`,
+                  );
+                }
+              }
+            } catch (expErr) {
+              console.error("source-expansion failed", expErr);
+            }
+
             results.push({ user_id: prefs.user_id, ok: true, items: result.items.length, emailed });
           } catch (e: any) {
             const errMsg = e?.message ?? String(e);
