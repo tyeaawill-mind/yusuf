@@ -142,9 +142,17 @@ export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: stri
   const gateway = createLovableAiGatewayProvider(key);
   const model = gateway("google/gemini-2.5-flash");
 
-  const system = `You are Yusuf, a personal news editor for the user. You are reviewing Bangladeshi news coverage focused on corruption, money laundering, and financial irregularities. Group near-duplicate articles. Keep only stories that are clearly on-topic. Rank by importance/freshness. Cap at ${prefs.max_items} items. ${langInstruction} Each summary must be EXACTLY five sentences. Always include the article URL as the source link. Pick an image_url from the article's IMAGE field when present, otherwise leave it null. Never invent facts not present in the article content. Output STRICT JSON only.`;
+  const system = `You are Yusuf, a personal news editor for the user. You are reviewing Bangladeshi coverage focused on INDIVIDUALS — specific named persons (officials, businessmen, politicians, public figures) and their stories, alleged corruption, illegal activities, lifestyle, scandals, and movements.
 
-  const userMsg = `Articles found today:\n\n${corpus}\n\nReturn JSON of shape:\n{\n  "intro": "1 short sentence framing today's briefing",\n  "items": [\n    { "headline": "...", "summary": "Five. Sentences. Here. Exactly. Five.", "url": "...", "image_url": "..." | null, "source": "domain.com" }\n  ]\n}`;
+STRICT EDITORIAL RULES:
+- Every item MUST center on a named individual (or a small named group). Drop generic policy / sector / institutional stories that do not name a person.
+- PREFER less-popular, tabloid-style, informal, and unverified outlets (small portals, Facebook pages, Telegram channels, YouTube/reels, blogs). Mainstream wire copy is acceptable ONLY when it adds a materially new fact about the individual.
+- DEDUPLICATE aggressively: if multiple articles cover the same individual + same incident with no meaningful new fact, keep only ONE (the freshest, most detailed). Do not list the same person's same scandal twice.
+- ORDERING: latest news FIRST (by published time or recency signal), then strict reverse-chronological order. Do not re-rank by importance.
+- Group near-duplicates. Cap at ${prefs.max_items} items. ${langInstruction} Each summary must be EXACTLY five sentences, named-person centric (who, what they allegedly did, where, when, current status).
+- Always include the article URL as the source link. Pick image_url from the article's IMAGE field when present, otherwise null. Never invent facts. Output STRICT JSON only.`;
+
+  const userMsg = `Articles found today:\n\n${corpus}\n\nReturn JSON of shape:\n{\n  "intro": "1 short sentence framing today's briefing on named individuals",\n  "items": [\n    { "headline": "Person Name — what they allegedly did", "summary": "Five. Sentences. Here. Exactly. Five.", "url": "...", "image_url": "..." | null, "source": "domain.com", "published_at": "ISO-8601 if known, else null" }\n  ]\n}\nOrder items by published_at DESC (latest first). Drop duplicates about the same person+incident.`;
 
   const { text } = await generateText({
     model,
