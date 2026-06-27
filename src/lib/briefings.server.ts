@@ -81,15 +81,34 @@ export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: stri
   if (sourceChunks.length === 0) sourceChunks.push([]);
   const topTopics = prefs.topics.slice(0, 8);
   const queries: string[] = [];
+  // Site-scoped queries across the configured directory, tilted toward
+  // individual-focused wording ("named", "accused", "অভিযুক্ত").
   topTopics.slice(0, 6).forEach((t, ti) => {
     const chunk = sourceChunks[ti % sourceChunks.length];
     const sitesQuery = chunk.map((s) => `site:${s}`).join(" OR ");
-    queries.push(sitesQuery ? `(${sitesQuery}) "${t}"` : `"${t}" Bangladesh`);
+    queries.push(
+      sitesQuery
+        ? `(${sitesQuery}) "${t}" (accused OR named OR অভিযুক্ত OR কেলেঙ্কারি)`
+        : `"${t}" Bangladesh accused individual`,
+    );
   });
-  // Also run one "open web" query per top topic to catch informal sources,
-  // Facebook posts, YouTube videos, and outlets not in the directory.
-  topTopics.slice(0, 2).forEach((t) => {
-    queries.push(`"${t}" Bangladesh corruption OR দুর্নীতি`);
+  // Open-web queries specifically targeting tabloid / informal / unverified
+  // outlets, social posts, and YouTube reels covering named individuals,
+  // while excluding the largest mainstream dailies to surface the long tail.
+  const tabloidScopes = [
+    "site:facebook.com",
+    "site:youtube.com",
+    "site:t.me",
+    "site:medium.com",
+    "site:wordpress.com",
+    "site:blogspot.com",
+  ].join(" OR ");
+  const mainstreamExclusions =
+    "-site:prothomalo.com -site:thedailystar.net -site:bdnews24.com -site:dhakatribune.com -site:newagebd.net -site:tbsnews.net";
+  topTopics.slice(0, 4).forEach((t) => {
+    queries.push(
+      `(${tabloidScopes}) "${t}" Bangladesh (named OR অভিযুক্ত OR কেলেঙ্কারি OR ঘুষ) ${mainstreamExclusions}`,
+    );
   });
 
   const allHits: SearchHit[] = [];
