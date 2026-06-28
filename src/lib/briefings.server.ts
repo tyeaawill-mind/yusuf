@@ -81,20 +81,26 @@ export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: stri
   if (sourceChunks.length === 0) sourceChunks.push([]);
   const topTopics = prefs.topics.slice(0, 8);
   const queries: string[] = [];
-  // Site-scoped queries across the configured directory, tilted toward
-  // individual-focused wording ("named", "accused", "অভিযুক্ত").
+  // Concrete-fact wording: we want stories with a named person AND at least one
+  // hard detail (amount embezzled, inquiry/case status, illegal wealth, assets).
+  const factWordsEn =
+    "(embezzled OR bribe OR laundering OR \"illegal wealth\" OR \"undisclosed assets\" OR \"wealth statement\" OR inquiry OR chargesheet OR FIR OR arrested OR remand OR \"case filed\" OR seized OR frozen OR crore OR lakh OR Tk)";
+  const factWordsBn =
+    "(আত্মসাৎ OR ঘুষ OR \"অবৈধ সম্পদ\" OR \"অপ্রদর্শিত সম্পদ\" OR অনুসন্ধান OR মামলা OR অভিযোগপত্র OR গ্রেপ্তার OR রিমান্ড OR জব্দ OR ক্রোক OR কোটি OR লাখ OR টাকা)";
+  // Site-scoped queries across the configured directory, demanding a named
+  // person plus concrete corruption facts.
   topTopics.slice(0, 6).forEach((t, ti) => {
     const chunk = sourceChunks[ti % sourceChunks.length];
     const sitesQuery = chunk.map((s) => `site:${s}`).join(" OR ");
     queries.push(
       sitesQuery
-        ? `(${sitesQuery}) "${t}" (accused OR named OR অভিযুক্ত OR কেলেঙ্কারি)`
-        : `"${t}" Bangladesh accused individual`,
+        ? `(${sitesQuery}) "${t}" (অভিযুক্ত OR accused OR named) ${factWordsEn} OR ${factWordsBn}`
+        : `"${t}" Bangladesh accused individual ${factWordsEn}`,
     );
   });
   // Open-web queries specifically targeting tabloid / informal / unverified
-  // outlets, social posts, and YouTube reels covering named individuals,
-  // while excluding the largest mainstream dailies to surface the long tail.
+  // outlets, social posts, and YouTube reels covering named individuals
+  // with concrete corruption details.
   const tabloidScopes = [
     "site:facebook.com",
     "site:youtube.com",
@@ -107,9 +113,19 @@ export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: stri
     "-site:prothomalo.com -site:thedailystar.net -site:bdnews24.com -site:dhakatribune.com -site:newagebd.net -site:tbsnews.net";
   topTopics.slice(0, 4).forEach((t) => {
     queries.push(
-      `(${tabloidScopes}) "${t}" Bangladesh (named OR অভিযুক্ত OR কেলেঙ্কারি OR ঘুষ) ${mainstreamExclusions}`,
+      `(${tabloidScopes}) "${t}" Bangladesh (অভিযুক্ত OR named OR accused) ${factWordsEn} ${mainstreamExclusions}`,
     );
   });
+  // Always-on hard-fact sweeps regardless of topic list: ACC/NBR inquiry,
+  // chargesheets, asset seizures, named officials with amounts.
+  const hardSweeps = [
+    `("দুদক" OR "Anti-Corruption Commission" OR ACC) (অনুসন্ধান OR মামলা OR চার্জশিট OR "chargesheet" OR "case filed") (কোটি OR লাখ OR crore OR lakh)`,
+    `("NBR" OR "জাতীয় রাজস্ব বোর্ড") (কর্মকর্তা OR official) (ঘুষ OR bribe OR "অবৈধ সম্পদ" OR "illegal wealth" OR অভিযুক্ত OR accused)`,
+    `Bangladesh (DC OR UNO OR OC OR secretary OR কর্মকর্তা) (অভিযুক্ত OR accused) (কোটি টাকা OR crore taka OR "illegal wealth" OR "অবৈধ সম্পদ")`,
+    `("সচিবালয়" OR "Bangladesh Secretariat") (অভিযুক্ত OR ঘুষ OR দুর্নীতি OR কেলেঙ্কারি) (কোটি OR লাখ OR crore)`,
+  ];
+  for (const q of hardSweeps) queries.push(q);
+
 
   const allHits: SearchHit[] = [];
   for (const q of queries) {
@@ -142,17 +158,32 @@ export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: stri
   const gateway = createLovableAiGatewayProvider(key);
   const model = gateway("google/gemini-2.5-flash");
 
-  const system = `You are Yusuf, a personal news editor for the user. You are reviewing Bangladeshi coverage focused on INDIVIDUALS — specific named persons (officials, businessmen, politicians, public figures) and their stories, alleged corruption, illegal activities, lifestyle, scandals, and movements.
+  const system = `You are Yusuf, a personal investigative news editor for the user. You are reviewing Bangladeshi coverage focused on INDIVIDUALS and their alleged corruption / illegal activities — who did what, how much, with whom, where the inquiry stands.
 
-STRICT EDITORIAL RULES:
-- Every item MUST center on a named individual (or a small named group). Drop generic policy / sector / institutional stories that do not name a person.
-- PREFER less-popular, tabloid-style, informal, and unverified outlets (small portals, Facebook pages, Telegram channels, YouTube/reels, blogs). Mainstream wire copy is acceptable ONLY when it adds a materially new fact about the individual.
-- DEDUPLICATE aggressively: if multiple articles cover the same individual + same incident with no meaningful new fact, keep only ONE (the freshest, most detailed). Do not list the same person's same scandal twice.
-- ORDERING: latest news FIRST (by published time or recency signal), then strict reverse-chronological order. Do not re-rank by importance.
-- Group near-duplicates. Cap at ${prefs.max_items} items. ${langInstruction} Each summary must be EXACTLY five sentences, named-person centric (who, what they allegedly did, where, when, current status).
-- Always include the article URL as the source link. Pick image_url from the article's IMAGE field when present, otherwise null. Never invent facts. Output STRICT JSON only.`;
+STRICT EDITORIAL RULES — violating any of these means DROP the item, do not soften it:
+1. Every item MUST name a specific individual (full name, or name + role/designation). No "an official", "a businessman", "sources say". If the article doesn't name a person, drop it.
+2. Every item MUST contain at least TWO of these concrete facts, drawn from the article (never invented):
+   - Amount of money involved (Tk / crore / lakh / USD).
+   - Specific allegation (embezzlement, bribe, laundering, tender rigging, tax evasion, smuggling, illegal wealth, undisclosed assets, plot/flat/land/vehicle).
+   - Agency / case status (ACC inquiry opened, chargesheet filed, FIR no., arrested, remand, bail, asset seized/frozen, wealth statement notice).
+   - Workplace / institution / location tied to the act (NBR wing, customs house, ministry, district, bank).
+   If fewer than two concrete facts are present, drop the item — do NOT fill with generic policy commentary.
+3. Each five-sentence summary MUST follow this structure, in order:
+   (a) Person — full name, designation, organisation.
+   (b) Allegation — exactly what they are accused of doing.
+   (c) Numbers — money amount, assets, time period.
+   (d) Inquiry / case status — agency, case/inquiry number if given, current stage.
+   (e) Source attribution and any rebuttal/denial noted in the article.
+4. PREFER less-popular, tabloid-style, informal and unverified outlets, Facebook pages, Telegram channels, YouTube/reels, blogs. Mainstream wire copy is OK only when it adds a new hard fact about the individual.
+5. DEDUPLICATE: same person + same incident = one item (freshest, most detailed). Do not list a person's same scandal twice.
+6. ORDER: latest news FIRST by published_at, strict reverse-chronological. Never re-rank by importance.
+7. Cap at ${prefs.max_items} items. ${langInstruction} Headline format: "Full Name (designation) — concrete allegation + amount".
+8. If after filtering you have ZERO qualifying items, return an empty items array and say so in intro. Do NOT pad with weak items.
+9. Always include the article URL. Pick image_url from the article's IMAGE field when present, else null. Never invent facts, numbers, or case statuses.
+Output STRICT JSON only.`;
 
-  const userMsg = `Articles found today:\n\n${corpus}\n\nReturn JSON of shape:\n{\n  "intro": "1 short sentence framing today's briefing on named individuals",\n  "items": [\n    { "headline": "Person Name — what they allegedly did", "summary": "Five. Sentences. Here. Exactly. Five.", "url": "...", "image_url": "..." | null, "source": "domain.com", "published_at": "ISO-8601 if known, else null" }\n  ]\n}\nOrder items by published_at DESC (latest first). Drop duplicates about the same person+incident.`;
+  const userMsg = `Articles found today:\n\n${corpus}\n\nReturn JSON of shape:\n{\n  "intro": "1 short sentence framing today's named-individual corruption briefing",\n  "items": [\n    { "headline": "Full Name (designation) — allegation + amount", "summary": "Five sentences following the (a)-(e) structure.", "url": "...", "image_url": "..." | null, "source": "domain.com", "published_at": "ISO-8601 if known, else null" }\n  ]\n}\nOrder items by published_at DESC. Drop any article that does not name a person AND carry at least two concrete facts (amount, allegation, agency/case status, institution). Better to return fewer items than to dilute with vague stories.`;
+
 
   const { text } = await generateText({
     model,
