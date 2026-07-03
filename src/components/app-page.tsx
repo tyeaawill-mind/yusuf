@@ -134,7 +134,7 @@ const LANG_OPTIONS = [
   { code: "fr-FR", label: "Français" },
 ];
 
-function ChatView({ userName, assistantName }: { userName: string; assistantName: string }) {
+function ChatView({ userName, assistantName, assistantAvatar }: { userName: string; assistantName: string; assistantAvatar?: string }) {
   const [loadedMessages, setLoadedMessages] = useState<UIMessage[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [chatInput, setChatInput] = useState("");
