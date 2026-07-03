@@ -71,9 +71,13 @@ export default function AppPage() {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-border bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-full flex-col">
           <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-              <Sparkles className="h-5 w-5 text-primary" />
-            </div>
+            {assistantAvatar ? (
+              <img src={assistantAvatar} alt={assistantName} className="h-9 w-9 rounded-xl object-cover ring-1 ring-primary/20" />
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+            )}
             <div>
               <h1 className="text-sm font-semibold text-sidebar-foreground font-display">{assistantName}</h1>
               <p className="text-xs text-sidebar-foreground/60">Your assistant</p>
@@ -304,7 +308,11 @@ function ChatView({ userName, assistantName }: { userName: string; assistantName
             {msg.role === "assistant" ? (
               <div className="max-w-[85%] lg:max-w-[70%]">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10"><Sparkles className="h-3 w-3 text-primary" /></div>
+                  {assistantAvatar ? (
+                    <img src={assistantAvatar} alt={assistantName} className="h-6 w-6 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10"><Sparkles className="h-3 w-3 text-primary" /></div>
+                  )}
                   <span className="text-xs font-medium text-muted-foreground">{assistantName}</span>
                 </div>
                 <div className="rounded-2xl rounded-tl-sm bg-card border border-border px-4 py-3 text-sm text-card-foreground leading-relaxed">
