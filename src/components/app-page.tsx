@@ -57,6 +57,7 @@ export default function AppPage() {
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: useServerFn(getProfile) });
   const assistantName = profile?.profile?.assistant_name ?? "Yusuf";
   const userName = profile?.profile?.full_name ?? "Tye";
+  const assistantAvatar = (profile?.profile as any)?.avatar_url as string | undefined;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
