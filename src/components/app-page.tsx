@@ -105,7 +105,7 @@ export default function AppPage() {
           <span className="font-semibold text-sm font-display">{assistantName}</span>
         </div>
         <main className="flex-1 overflow-auto">
-          {activeTab === "chat" && <ChatView userName={userName} assistantName={assistantName} />}
+          {activeTab === "chat" && <ChatView userName={userName} assistantName={assistantName} assistantAvatar={assistantAvatar} />}
           {activeTab === "briefings" && <BriefingsView />}
           {activeTab === "mail" && <MailView />}
           {activeTab === "todos" && <TodosView />}
