@@ -18,6 +18,7 @@ export const getProfile = createServerFn({ method: "GET" })
 const updateProfileSchema = z.object({
   full_name: z.string().max(100).optional(),
   assistant_name: z.string().max(50).optional(),
+  avatar_url: z.string().url().optional(),
 });
 
 export const updateProfile = createServerFn({ method: "POST" })
