@@ -136,7 +136,19 @@ function LoginPage() {
               </form>
             </>
           ) : isSignUp && !screening?.passed ? (
-            <IntegrityScreening onPass={(r) => { setScreening(r); setError(""); }} />
+            <>
+              <IntegrityScreening onPass={(r) => { setScreening(r); setError(""); }} />
+              <div className="mt-6 text-center">
+                <button
+                  type="button"
+                  onClick={() => { setIsSignUp(false); setError(""); setScreening(null); }}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Already have an account? Sign in
+                </button>
+              </div>
+            </>
+
           ) : (
             <>
           {isSignUp && screening?.passed && (
