@@ -84,7 +84,10 @@ export function IntegrityScreening({ onPass }: { onPass: (r: ScreeningResult) =>
   const complete = Object.keys(answers).length === QUESTIONS.length;
 
   const submit = () => {
-    const score = Object.values(answers).reduce((a, b) => a + b, 0);
+    const score = Object.entries(answers).reduce(
+      (sum, [qi, oi]) => sum + (QUESTIONS[Number(qi)]?.options[oi]?.value ?? 0),
+      0,
+    );
     const passed = score / total >= PASS_RATIO;
     const r = { score, total, passed };
     setResult(r);
@@ -133,13 +136,12 @@ export function IntegrityScreening({ onPass }: { onPass: (r: ScreeningResult) =>
             </p>
             <div className="space-y-1.5">
               {item.options.map((opt, j) => {
-                const selected = answers[i] === opt.value && answers[i] !== undefined;
-                const active = selected && (answers[i] as number) === opt.value;
+                const active = answers[i] === j;
                 return (
                   <button
                     key={j}
                     type="button"
-                    onClick={() => setAnswers((a) => ({ ...a, [i]: opt.value }))}
+                    onClick={() => setAnswers((a) => ({ ...a, [i]: j }))}
                     className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
                       active
                         ? "border-primary bg-primary/10 text-foreground"
