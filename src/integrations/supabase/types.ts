@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decision_token: string
+          discretion_view: string | null
+          email: string
+          id: string
+          legal_view: string | null
+          purpose: string
+          recommendation: string
+          referral_view: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decision_token: string
+          discretion_view?: string | null
+          email: string
+          id?: string
+          legal_view?: string | null
+          purpose: string
+          recommendation?: string
+          referral_view?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decision_token?: string
+          discretion_view?: string | null
+          email?: string
+          id?: string
+          legal_view?: string | null
+          purpose?: string
+          recommendation?: string
+          referral_view?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       account_vault: {
         Row: {
           category: string | null

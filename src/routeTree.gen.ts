@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiPublicAcisDecisionRouteImport } from './routes/api/public/acis/decision'
 import { Route as ApiPublicHooksGenerateBriefingsRouteImport } from './routes/api/public/hooks/generate-briefings'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +36,11 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAcisDecisionRoute = ApiPublicAcisDecisionRouteImport.update({
+  id: '/api/public/acis/decision',
+  path: '/api/public/acis/decision',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksGenerateBriefingsRoute =
   ApiPublicHooksGenerateBriefingsRouteImport.update({
     id: '/api/public/hooks/generate-briefings',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/public/acis/decision': typeof ApiPublicAcisDecisionRoute
   '/api/public/hooks/generate-briefings': typeof ApiPublicHooksGenerateBriefingsRoute
 }
 export interface FileRoutesByTo {
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/public/acis/decision': typeof ApiPublicAcisDecisionRoute
   '/api/public/hooks/generate-briefings': typeof ApiPublicHooksGenerateBriefingsRoute
 }
 export interface FileRoutesById {
@@ -62,6 +70,7 @@ export interface FileRoutesById {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/public/acis/decision': typeof ApiPublicAcisDecisionRoute
   '/api/public/hooks/generate-briefings': typeof ApiPublicHooksGenerateBriefingsRoute
 }
 export interface FileRouteTypes {
@@ -71,6 +80,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/api/chat'
+    | '/api/public/acis/decision'
     | '/api/public/hooks/generate-briefings'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -78,6 +88,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/api/chat'
+    | '/api/public/acis/decision'
     | '/api/public/hooks/generate-briefings'
   id:
     | '__root__'
@@ -85,6 +96,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/api/chat'
+    | '/api/public/acis/decision'
     | '/api/public/hooks/generate-briefings'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +105,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRoute
   LoginRoute: typeof LoginRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiPublicAcisDecisionRoute: typeof ApiPublicAcisDecisionRoute
   ApiPublicHooksGenerateBriefingsRoute: typeof ApiPublicHooksGenerateBriefingsRoute
 }
 
@@ -126,6 +139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/acis/decision': {
+      id: '/api/public/acis/decision'
+      path: '/api/public/acis/decision'
+      fullPath: '/api/public/acis/decision'
+      preLoaderRoute: typeof ApiPublicAcisDecisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/generate-briefings': {
       id: '/api/public/hooks/generate-briefings'
       path: '/api/public/hooks/generate-briefings'
@@ -141,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRoute,
   LoginRoute: LoginRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiPublicAcisDecisionRoute: ApiPublicAcisDecisionRoute,
   ApiPublicHooksGenerateBriefingsRoute: ApiPublicHooksGenerateBriefingsRoute,
 }
 export const routeTree = rootRouteImport

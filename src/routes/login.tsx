@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, Sparkles, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { IntegrityScreening, type ScreeningResult } from "@/components/integrity-screening";
+import { useServerFn } from "@tanstack/react-start";
+import { submitAccessRequest } from "@/lib/acis.functions";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -22,6 +24,7 @@ function LoginPage() {
   const [mfa, setMfa] = useState<{ factorId: string; challengeId: string } | null>(null);
   const [mfaCode, setMfaCode] = useState("");
   const [screening, setScreening] = useState<ScreeningResult | null>(null);
+  const submitAccess = useServerFn(submitAccessRequest);
 
   const checkMfaAndContinue = async () => {
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -45,7 +48,7 @@ function LoginPage() {
 
     try {
       if (isSignUp) {
-        if (!screening?.passed) {
+        if (!screening) {
           setError("Please complete the integrity screening first.");
           setLoading(false);
           return;
@@ -55,11 +58,16 @@ function LoginPage() {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { acis_score: screening.score, acis_total: screening.total, acis_passed: true },
+            data: { acis: screening.answers, acis_recommendation: screening.recommendation },
           },
         });
         if (error) throw error;
-        setError("Check your email to confirm your account.");
+        const res = await submitAccess({ data: { email, ...screening.answers } });
+        setError(
+          res.status === "approved"
+            ? "Check your email to confirm your account."
+            : "Check your email to confirm your account. Your access is pending owner approval.",
+        );
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -135,9 +143,9 @@ function LoginPage() {
                 </button>
               </form>
             </>
-          ) : isSignUp && !screening?.passed ? (
+          ) : isSignUp && !screening ? (
             <>
-              <IntegrityScreening onPass={(r) => { setScreening(r); setError(""); }} />
+              <IntegrityScreening onComplete={(r) => { setScreening(r); setError(""); }} />
               <div className="mt-6 text-center">
                 <button
                   type="button"
@@ -151,9 +159,9 @@ function LoginPage() {
 
           ) : (
             <>
-          {isSignUp && screening?.passed && (
+          {isSignUp && screening && (
             <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
-              Integrity screening passed ({screening.score}/{screening.total}). You may create your account.
+              Screening recorded. Create your account — access is activated once the owner approves your request.
             </div>
           )}
           <h2 className="text-lg font-semibold text-card-foreground font-display">
