@@ -159,9 +159,9 @@ function LoginPage() {
 
           ) : (
             <>
-          {isSignUp && screening?.passed && (
+          {isSignUp && screening && (
             <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
-              Integrity screening passed ({screening.score}/{screening.total}). You may create your account.
+              Screening recorded. Create your account — access is activated once the owner approves your request.
             </div>
           )}
           <h2 className="text-lg font-semibold text-card-foreground font-display">
