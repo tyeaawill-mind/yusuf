@@ -48,7 +48,7 @@ function LoginPage() {
 
     try {
       if (isSignUp) {
-        if (!screening?.passed) {
+        if (!screening) {
           setError("Please complete the integrity screening first.");
           setLoading(false);
           return;
@@ -58,11 +58,16 @@ function LoginPage() {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { acis_score: screening.score, acis_total: screening.total, acis_passed: true },
+            data: { acis: screening.answers, acis_recommendation: screening.recommendation },
           },
         });
         if (error) throw error;
-        setError("Check your email to confirm your account.");
+        const res = await submitAccess({ data: { email, ...screening.answers } });
+        setError(
+          res.status === "approved"
+            ? "Check your email to confirm your account."
+            : "Check your email to confirm your account. Your access is pending owner approval.",
+        );
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
