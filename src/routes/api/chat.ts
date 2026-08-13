@@ -75,6 +75,15 @@ export const Route = createFileRoute("/api/chat")({
         }
         const userId = claimsData.claims.sub;
 
+        const retryAfter = checkRateLimit(userId);
+        if (retryAfter !== null) {
+          return new Response("Too many requests. Please slow down.", {
+            status: 429,
+            headers: { "Retry-After": String(retryAfter) },
+          });
+        }
+
+
         // Fetch user's context
         const [{ data: profile }, { data: todos }, { data: goals }, { data: memories }, { data: files }] =
           await Promise.all([
