@@ -8,15 +8,48 @@ interface ChatRequestBody {
   messages?: unknown;
 }
 
+// Simple in-memory sliding-window rate limiter (per worker instance).
+const RATE_LIMIT = 20; // requests
+const RATE_WINDOW_MS = 60_000; // per minute
+const MAX_MESSAGES = 100;
+const MAX_PAYLOAD_CHARS = 200_000;
+const requestLog = new Map<string, number[]>();
+
+function checkRateLimit(userId: string): number | null {
+  const now = Date.now();
+  const hits = (requestLog.get(userId) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  if (hits.length >= RATE_LIMIT) {
+    return Math.ceil((RATE_WINDOW_MS - (now - hits[0]!)) / 1000);
+  }
+  hits.push(now);
+  requestLog.set(userId, hits);
+  if (requestLog.size > 5000) {
+    for (const [key, times] of requestLog) {
+      if (times.every((t) => now - t >= RATE_WINDOW_MS)) requestLog.delete(key);
+    }
+  }
+  return null;
+}
+
 export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {
-        const body = (await request.json()) as ChatRequestBody;
+        const rawBody = await request.text();
+        if (rawBody.length > MAX_PAYLOAD_CHARS) {
+          return new Response("Payload too large", { status: 413 });
+        }
+        let body: ChatRequestBody;
+        try {
+          body = JSON.parse(rawBody) as ChatRequestBody;
+        } catch {
+          return new Response("Invalid JSON body", { status: 400 });
+        }
         const messages = body.messages;
-        if (!Array.isArray(messages)) {
+        if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) {
           return new Response("Messages are required", { status: 400 });
         }
+
 
         // Extract auth token
         const authHeader = request.headers.get("authorization");
