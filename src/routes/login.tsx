@@ -143,9 +143,9 @@ function LoginPage() {
                 </button>
               </form>
             </>
-          ) : isSignUp && !screening?.passed ? (
+          ) : isSignUp && !screening ? (
             <>
-              <IntegrityScreening onPass={(r) => { setScreening(r); setError(""); }} />
+              <IntegrityScreening onComplete={(r) => { setScreening(r); setError(""); }} />
               <div className="mt-6 text-center">
                 <button
                   type="button"
