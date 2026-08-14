@@ -221,7 +221,7 @@ function LoginPage() {
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setError("");
-                setScreening(null);
+                
               }}
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
