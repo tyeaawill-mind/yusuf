@@ -44,26 +44,14 @@ function LoginPage() {
 
     try {
       if (isSignUp) {
-        if (!screening) {
-          setError("Please complete the integrity screening first.");
-          setLoading(false);
-          return;
-        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { acis: screening.answers, acis_recommendation: screening.recommendation },
-          },
+          options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        const res = await submitAccess({ data: { email, ...screening.answers } });
-        setError(
-          res.status === "approved"
-            ? "Check your email to confirm your account."
-            : "Check your email to confirm your account. Your access is pending owner approval.",
-        );
+        setError("Check your email to confirm your account.");
+
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
