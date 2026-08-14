@@ -127,27 +127,9 @@ function LoginPage() {
                 </button>
               </form>
             </>
-          ) : isSignUp && !screening ? (
-            <>
-              <IntegrityScreening onComplete={(r) => { setScreening(r); setError(""); }} />
-              <div className="mt-6 text-center">
-                <button
-                  type="button"
-                  onClick={() => { setIsSignUp(false); setError(""); setScreening(null); }}
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Already have an account? Sign in
-                </button>
-              </div>
-            </>
-
           ) : (
             <>
-          {isSignUp && screening && (
-            <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
-              Screening recorded. Create your account — access is activated once the owner approves your request.
-            </div>
-          )}
+
           <h2 className="text-lg font-semibold text-card-foreground font-display">
             {isSignUp ? "Create your account" : "Welcome back"}
           </h2>
