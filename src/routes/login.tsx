@@ -21,8 +21,6 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [mfa, setMfa] = useState<{ factorId: string; challengeId: string } | null>(null);
   const [mfaCode, setMfaCode] = useState("");
-  const [screening, setScreening] = useState<ScreeningResult | null>(null);
-  const submitAccess = useServerFn(submitAccessRequest);
 
   const checkMfaAndContinue = async () => {
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
