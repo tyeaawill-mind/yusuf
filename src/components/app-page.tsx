@@ -9,13 +9,14 @@ import {
   MessageSquare, CheckSquare, Target, BarChart3, LogOut, User, Sparkles,
   Menu, X, Send, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
   ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX,
-  Settings as SettingsIcon, AlertCircle, FolderOpen, Newspaper, Mail
+  Settings as SettingsIcon, AlertCircle, FolderOpen, Newspaper, Mail, UserSearch
 } from "lucide-react";
 import { VaultView } from "@/components/vault-view";
 import { SecurityView } from "@/components/security-view";
 import { FilesView } from "@/components/files-view";
 import { BriefingsView } from "@/components/briefings-view";
 import { MailView } from "@/components/mail-view";
+import { DossiersView } from "@/components/dossiers-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,9 +56,17 @@ export default function AppPage() {
   const navigate = useNavigate();
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: useServerFn(getProfile) });
+  const { data: authUser } = useQuery({
+    queryKey: ["auth-user"],
+    queryFn: async () => (await supabase.auth.getUser()).data.user,
+  });
   const assistantName = profile?.profile?.assistant_name ?? "Yusuf";
-  const userName = profile?.profile?.full_name ?? "Tye";
+  const fallbackName = authUser?.email?.split("@")[0] ?? authUser?.id.slice(0, 8) ?? "there";
+  const userName = profile?.profile?.full_name ?? fallbackName;
+  const isOwner = (authUser?.email ?? "").toLowerCase() === "tyeaawill@gmail.com";
+  const visibleNavItems = isOwner ? [...navItems, { label: "User Profiles", icon: UserSearch, id: "dossiers" }] : navItems;
   const assistantAvatar = (profile?.profile as any)?.avatar_url as string | undefined;
+
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -85,7 +94,7 @@ export default function AppPage() {
             <button onClick={() => setMobileOpen(false)} className="ml-auto lg:hidden text-sidebar-foreground/60 hover:text-sidebar-foreground"><X className="h-5 w-5" /></button>
           </div>
           <nav className="flex-1 space-y-1 px-3 py-4">
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileOpen(false); }}
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${activeTab === item.id ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"}`}>
                 <item.icon className="h-4 w-4" />{item.label}
@@ -114,6 +123,7 @@ export default function AppPage() {
           {activeTab === "vault" && <VaultView />}
           {activeTab === "security" && <SecurityView />}
           {activeTab === "insights" && <InsightsView />}
+          {activeTab === "dossiers" && isOwner && <DossiersView />}
         </main>
       </div>
     </div>

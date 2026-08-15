@@ -380,6 +380,69 @@ export type Database = {
         }
         Relationships: []
       }
+      user_dossiers: {
+        Row: {
+          ambition: string | null
+          choice: string | null
+          confidence: string
+          courage: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          integrity: string | null
+          iq: string | null
+          message_count: number
+          motivation: string | null
+          sneaky_techniques: string | null
+          social_currencies: string | null
+          summary: string | null
+          updated_at: string
+          user_email: string | null
+          user_id: string
+          vulnerability: string | null
+        }
+        Insert: {
+          ambition?: string | null
+          choice?: string | null
+          confidence?: string
+          courage?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          integrity?: string | null
+          iq?: string | null
+          message_count?: number
+          motivation?: string | null
+          sneaky_techniques?: string | null
+          social_currencies?: string | null
+          summary?: string | null
+          updated_at?: string
+          user_email?: string | null
+          user_id: string
+          vulnerability?: string | null
+        }
+        Update: {
+          ambition?: string | null
+          choice?: string | null
+          confidence?: string
+          courage?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          integrity?: string | null
+          iq?: string | null
+          message_count?: number
+          motivation?: string | null
+          sneaky_techniques?: string | null
+          social_currencies?: string | null
+          summary?: string | null
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string
+          vulnerability?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
