@@ -55,9 +55,17 @@ export default function AppPage() {
   const navigate = useNavigate();
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: useServerFn(getProfile) });
+  const { data: authUser } = useQuery({
+    queryKey: ["auth-user"],
+    queryFn: async () => (await supabase.auth.getUser()).data.user,
+  });
   const assistantName = profile?.profile?.assistant_name ?? "Yusuf";
-  const userName = profile?.profile?.full_name ?? "Tye";
+  const fallbackName = authUser?.email?.split("@")[0] ?? authUser?.id.slice(0, 8) ?? "there";
+  const userName = profile?.profile?.full_name ?? fallbackName;
+  const isOwner = (authUser?.email ?? "").toLowerCase() === "tyeaawill@gmail.com";
+  const visibleNavItems = isOwner ? [...navItems, { label: "User Profiles", icon: UserSearch, id: "dossiers" }] : navItems;
   const assistantAvatar = (profile?.profile as any)?.avatar_url as string | undefined;
+
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
