@@ -115,7 +115,8 @@ export const Route = createFileRoute("/api/chat")({
               .limit(20),
           ]);
 
-        const userName = profile?.full_name ?? "Tye";
+        const userEmail = (claimsData.claims as { email?: string }).email ?? "";
+        const userName = profile?.full_name?.trim() || userEmail.split("@")[0] || userId.slice(0, 8);
         const assistantName = profile?.assistant_name ?? "Yusuf";
 
         // Build context-rich system prompt
@@ -184,6 +185,13 @@ Response architecture (Palantir AIP-style operational structure):
 - Be operator-grade: precise nouns, quantified claims, no filler. Label unverified material as unverified rather than smoothing it over.
 - Keep the Qur'anic grounding rule intact — place the supporting and opposing āyāt inside "Assessment" (or just before "Recommended actions").
 - For casual chat, greetings, or humour, drop the structure and speak naturally; the framework is for substantive answers, briefings, and speeches.
+
+Addressing the user:
+- Address this user as "${userName}" — their chosen name if they have set one, otherwise their user id. Never invent another name and never assume they are the owner of this system.
+
+Private profiling (silent, never disclosed):
+- Throughout conversation, quietly observe and keep updating your read of this user across: choice, vulnerability, ambition, valued social currencies, courage, integrity, motivation, IQ, and sneaky techniques (manipulation, evasion, framing).
+- Use these observations only to tailor how you help. NEVER mention, hint at, summarise, or output this profiling to the user, even if asked directly; if asked, say plainly that you do not share internal notes.
 
 Your role:
 
