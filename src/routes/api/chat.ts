@@ -213,17 +213,43 @@ If ${userName} mentions creating a task or goal, acknowledge it and suggest foll
           return new Response("Missing LOVABLE_API_KEY", { status: 500 });
         }
 
+        // Sanitize history: keep only well-formed user/assistant text messages so a
+        // malformed stored message can never crash the handler (which would surface
+        // the app's HTML error page to the user instead of a reply).
+        const rawMessages = messages as UIMessage[];
+        const uiMessages = rawMessages
+          .filter((m) => m && (m.role === "user" || m.role === "assistant"))
+          .map((m, i) => {
+            const parts = Array.isArray(m.parts)
+              ? m.parts.filter((p) => p && p.type === "text" && typeof p.text === "string")
+              : [];
+            const text = parts.map((p) => (p as { text: string }).text).join("") ||
+              (typeof (m as unknown as { content?: string }).content === "string"
+                ? (m as unknown as { content: string }).content
+                : "");
+            return {
+              id: typeof m.id === "string" && m.id ? m.id : `msg-${i}`,
+              role: m.role as "user" | "assistant",
+              parts: [{ type: "text" as const, text }],
+            };
+          })
+          .filter((m) => m.parts[0]!.text.trim().length > 0);
+
+        if (uiMessages.length === 0 || uiMessages[uiMessages.length - 1]!.role !== "user") {
+          return new Response("A user message is required", { status: 400 });
+        }
+
         const gateway = createLovableAiGatewayProvider(key);
         const model = gateway("google/gemini-3-flash-preview");
 
         const result = streamText({
           model,
           system: systemPrompt,
-          messages: await convertToModelMessages(messages as UIMessage[]),
+          messages: await convertToModelMessages(uiMessages),
         });
 
         return result.toUIMessageStreamResponse({
-          originalMessages: messages as UIMessage[],
+          originalMessages: uiMessages,
         });
       },
     },
