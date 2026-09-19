@@ -252,6 +252,10 @@ If ${userName} mentions creating a task or goal, acknowledge it and suggest foll
         return result.toUIMessageStreamResponse({
           originalMessages: uiMessages,
         });
+       } catch (err) {
+         console.error("[/api/chat] Unhandled error", err);
+         return new Response("Yusuf hit an unexpected error. Please try again.", { status: 500 });
+       }
       },
     },
   },
