@@ -35,6 +35,7 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {
+       try {
         const rawBody = await request.text();
         if (rawBody.length > MAX_PAYLOAD_CHARS) {
           return new Response("Payload too large", { status: 413 });
