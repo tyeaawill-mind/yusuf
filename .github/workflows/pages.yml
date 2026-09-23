@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy showcase page to GitHub Pages
 
 on:
   push:
@@ -16,30 +16,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - run: bun install --frozen-lockfile
-      - run: bun run build
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
 
     steps:
+      - uses: actions/checkout@v4
+
+      # The full Yusuf app needs a server runtime and stays hosted at yusuf.ltd.
+      # GitHub Pages only serves the static showcase page in ./site.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
       - id: deployment
         uses: actions/deploy-pages@v4
