@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yusuf — Personal Assistant of Tye A Awill</title>
+    <meta
+      name="description"
+      content="Yusuf is a private personal assistant: one ongoing conversation, tasks and goals, daily news briefings, secure vault and mail."
+    />
+    <meta property="og:title" content="Yusuf — Personal Assistant of Tye A Awill" />
+    <meta
+      property="og:description"
+      content="Yusuf is a private personal assistant: one ongoing conversation, tasks and goals, daily news briefings, secure vault and mail."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=DM+Sans:wght@400;500&display=swap"
+    />
+    <style>
+      :root {
+        --bg: #0b0d1a;
+        --surface: #141733;
+        --line: #262a52;
+        --text: #eceaff;
+        --muted: #a5a4c8;
+        --glow: #7c6cff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1000px 600px at 20% -10%, rgba(124, 108, 255, 0.28), transparent 60%),
+          var(--bg);
+        color: var(--text);
+        font-family: "DM Sans", system-ui, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 20px;
+      }
+      main { width: 100%; max-width: 760px; }
+      .tag {
+        display: inline-block;
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 6px 14px;
+      }
+      h1 {
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        font-size: clamp(38px, 7vw, 66px);
+        line-height: 1.05;
+        margin: 22px 0 14px;
+      }
+      p.lead { font-size: 18px; color: var(--muted); max-width: 56ch; line-height: 1.6; }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 30px 0 44px; }
+      a.btn {
+        text-decoration: none;
+        font-weight: 500;
+        padding: 13px 22px;
+        border-radius: 12px;
+        background: var(--glow);
+        color: #0b0d1a;
+      }
+      a.btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
+      .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+      .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+      .card h3 { font-family: "Space Grotesk", system-ui, sans-serif; margin: 0 0 6px; font-size: 16px; }
+      .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+      footer { margin-top: 44px; color: var(--muted); font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="tag">Private assistant</span>
+      <h1>Yusuf</h1>
+      <p class="lead">
+        A devoted personal assistant for Tye A Awill. One ongoing conversation that remembers,
+        keeps the day organised, watches the news, and guards what matters.
+      </p>
+      <div class="actions">
+        <a class="btn" href="https://yusuf.ltd">Open Yusuf</a>
+        <a class="btn ghost" href="https://yusuf.ltd/login">Sign in</a>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h3>Conversation</h3>
+          <p>Voice or text, in your language, with answers structured and grounded.</p>
+        </div>
+        <div class="card">
+          <h3>Tasks and goals</h3>
+          <p>Targets, progress and honest gaps between plan and achievement.</p>
+        </div>
+        <div class="card">
+          <h3>Daily briefing</h3>
+          <p>Morning news digest on the people and stories you follow.</p>
+        </div>
+        <div class="card">
+          <h3>Vault and mail</h3>
+          <p>Encrypted account keeping, files, and mail sent on your behalf.</p>
+        </div>
+      </div>
+      <footer>This page introduces Yusuf. The assistant itself lives at yusuf.ltd.</footer>
+    </main>
+  </body>
+</html>
