@@ -6,10 +6,24 @@
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// PAGES_BUILD=1 produces a fully static client bundle (no server runtime) for
+// GitHub Pages. Everything server-side lives in Supabase Edge Functions.
+const staticBuild = process.env["PAGES_BUILD"] === "1";
+
 // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
 // @cloudflare/vite-plugin builds from this — wrangler.jsonc main alone is insufficient.
-export default defineConfig({
-  tanstackStart: {
-    server: { entry: "server" },
-  },
-});
+export default defineConfig(
+  staticBuild
+    ? {
+        nitro: false,
+        tanstackStart: {
+          spa: { enabled: true },
+          prerender: { enabled: false },
+        },
+      }
+    : {
+        tanstackStart: {
+          server: { entry: "server" },
+        },
+      },
+);
