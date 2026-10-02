@@ -6,10 +6,11 @@ import { DefaultChatTransport } from "ai";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  MessageSquare, CheckSquare, Target, BarChart3, LogOut, User, Sparkles,
-  Menu, X, Send, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
+  MessageSquare, CheckSquare, Target, BarChart3, LogOut, User,
+  Menu, X, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
   ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX,
-  Settings as SettingsIcon, AlertCircle, FolderOpen, Newspaper, Mail, UserSearch
+  Settings as SettingsIcon, AlertCircle, FolderOpen, Newspaper, Mail, UserSearch,
+  Copy, Share2, RotateCcw, Check, PencilLine
 } from "lucide-react";
 import { VaultView } from "@/components/vault-view";
 import { SecurityView } from "@/components/security-view";
@@ -25,6 +26,14 @@ import { Progress } from "@/components/ui/progress";
 import { getTodos, createTodo, updateTodo, deleteTodo } from "@/lib/todos.functions";
 import { getGoals, createGoal, updateGoal, deleteGoal } from "@/lib/goals.functions";
 import { getProfile, getMemories } from "@/lib/profile.functions";
+import { updateProfile } from "@/lib/profile.functions";
+import { normalizeAssistantText } from "@/lib/utils";
+import { Conversation, ConversationContent, ConversationEmptyState, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import { Message, MessageAction, MessageActions, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import { PromptInput, PromptInputButton, PromptInputFooter, PromptInputSubmit, PromptInputTextarea, PromptInputTools } from "@/components/ai-elements/prompt-input";
+import { Shimmer } from "@/components/ai-elements/shimmer";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import avatarAsset from "@/assets/yusuf-avatar.png.asset.json";
 
 const chatTransport = new DefaultChatTransport({
   api: "/api/chat",
@@ -54,6 +63,7 @@ export default function AppPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [nickname, setNickname] = useState("");
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: useServerFn(getProfile) });
   const { data: authUser } = useQuery({
@@ -65,7 +75,12 @@ export default function AppPage() {
   const userName = profile?.profile?.full_name ?? fallbackName;
   const isOwner = (authUser?.email ?? "").toLowerCase() === "tyeaawill@gmail.com";
   const visibleNavItems = isOwner ? [...navItems, { label: "User Profiles", icon: UserSearch, id: "dossiers" }] : navItems;
-  const assistantAvatar = (profile?.profile as any)?.avatar_url as string | undefined;
+  const assistantAvatar = ((profile?.profile as any)?.avatar_url as string | undefined) || avatarAsset.url;
+  const updateProfileFn = useServerFn(updateProfile);
+  const nicknameMutation = useMutation({
+    mutationFn: (full_name: string) => updateProfileFn({ data: { full_name } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile"] }),
+  });
 
 
   const handleSignOut = async () => {
@@ -76,27 +91,25 @@ export default function AppPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {mobileOpen && <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setMobileOpen(false)} />}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-border bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      {mobileOpen && <div className="fixed inset-0 z-40 bg-overlay/70 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[18rem] transform border-r border-sidebar-border bg-sidebar/95 shadow-2xl backdrop-blur-2xl transition-transform duration-300 lg:static lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-full flex-col">
           <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-4">
             {assistantAvatar ? (
-              <img src={assistantAvatar} alt={assistantName} className="h-9 w-9 rounded-xl object-cover ring-1 ring-primary/20" />
+              <img src={assistantAvatar} alt={assistantName} className="h-11 w-11 rounded-lg object-cover ring-1 ring-primary/30" />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-                <Sparkles className="h-5 w-5 text-primary" />
-              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/15 font-display text-lg font-semibold text-primary">Y</div>
             )}
             <div>
-              <h1 className="text-sm font-semibold text-sidebar-foreground font-display">{assistantName}</h1>
-              <p className="text-xs text-sidebar-foreground/60">Your assistant</p>
+              <h1 className="text-base font-semibold text-sidebar-foreground font-display">{assistantName}</h1>
+              <p className="text-xs text-sidebar-foreground/60">Research and decisions</p>
             </div>
             <button onClick={() => setMobileOpen(false)} className="ml-auto lg:hidden text-sidebar-foreground/60 hover:text-sidebar-foreground"><X className="h-5 w-5" /></button>
           </div>
-          <nav className="flex-1 space-y-1 px-3 py-4">
+          <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-5">
             {visibleNavItems.map((item) => (
               <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileOpen(false); }}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${activeTab === item.id ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"}`}>
+                className={`flex w-full items-center gap-3 rounded-md px-3 py-3 text-[0.95rem] font-medium transition-all ${activeTab === item.id ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-primary/20" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"}`}>
                 <item.icon className="h-4 w-4" />{item.label}
               </button>
             ))}
@@ -109,7 +122,7 @@ export default function AppPage() {
         </div>
       </aside>
       <div className="flex flex-1 flex-col min-w-0">
-        <div className="flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur-sm lg:hidden">
+        <div className="flex items-center gap-3 border-b border-border bg-background/85 px-4 py-3 backdrop-blur-xl lg:hidden">
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="text-foreground"><Menu className="h-5 w-5" /></Button>
           <span className="font-semibold text-sm font-display">{assistantName}</span>
         </div>
@@ -126,6 +139,18 @@ export default function AppPage() {
           {activeTab === "dossiers" && isOwner && <DossiersView />}
         </main>
       </div>
+      <Dialog open={Boolean(profile && !profile.profile?.full_name)}>
+        <DialogContent className="border-border bg-surface-elevated sm:max-w-md" onEscapeKeyDown={(event) => event.preventDefault()} onPointerDownOutside={(event) => event.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-2xl">How should Yusuf address you?</DialogTitle>
+            <DialogDescription className="text-base leading-7">Choose your real name or a nickname. You can change it later.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(event) => { event.preventDefault(); if (nickname.trim()) nicknameMutation.mutate(nickname.trim()); }} className="space-y-4">
+            <div className="relative"><PencilLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="Name or nickname" className="h-12 bg-background/60 pl-10 text-base" maxLength={100} autoFocus /></div>
+            <Button type="submit" disabled={!nickname.trim() || nicknameMutation.isPending} className="h-11 w-full">Continue as {nickname.trim() || "your chosen name"}</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
