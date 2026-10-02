@@ -6,7 +6,7 @@ import { DefaultChatTransport } from "ai";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  MessageSquare, CheckSquare, Target, BarChart3, LogOut, User,
+  MessageSquare, CheckSquare, Target, BarChart3, LogOut, User, Sparkles,
   Menu, X, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
   ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX,
   Settings as SettingsIcon, AlertCircle, FolderOpen, Newspaper, Mail, UserSearch,
