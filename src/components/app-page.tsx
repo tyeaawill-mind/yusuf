@@ -6,10 +6,11 @@ import { DefaultChatTransport } from "ai";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  MessageSquare, CheckSquare, Target, BarChart3, LogOut, User, Sparkles,
-  Menu, X, Send, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
+  MessageSquare, CheckSquare, Target, BarChart3, LogOut, User,
+  Menu, X, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
   ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX,
-  Settings as SettingsIcon, AlertCircle, FolderOpen, Newspaper, Mail, UserSearch
+  Settings as SettingsIcon, AlertCircle, FolderOpen, Newspaper, Mail, UserSearch,
+  Copy, Share2, RotateCcw, Check, PencilLine
 } from "lucide-react";
 import { VaultView } from "@/components/vault-view";
 import { SecurityView } from "@/components/security-view";
@@ -25,6 +26,14 @@ import { Progress } from "@/components/ui/progress";
 import { getTodos, createTodo, updateTodo, deleteTodo } from "@/lib/todos.functions";
 import { getGoals, createGoal, updateGoal, deleteGoal } from "@/lib/goals.functions";
 import { getProfile, getMemories } from "@/lib/profile.functions";
+import { updateProfile } from "@/lib/profile.functions";
+import { normalizeAssistantText } from "@/lib/utils";
+import { Conversation, ConversationContent, ConversationEmptyState, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import { Message, MessageAction, MessageActions, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import { PromptInput, PromptInputButton, PromptInputFooter, PromptInputSubmit, PromptInputTextarea, PromptInputTools } from "@/components/ai-elements/prompt-input";
+import { Shimmer } from "@/components/ai-elements/shimmer";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import avatarAsset from "@/assets/yusuf-avatar.png.asset.json";
 
 const chatTransport = new DefaultChatTransport({
   api: "/api/chat",
@@ -54,6 +63,7 @@ export default function AppPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [nickname, setNickname] = useState("");
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: useServerFn(getProfile) });
   const { data: authUser } = useQuery({
@@ -65,7 +75,12 @@ export default function AppPage() {
   const userName = profile?.profile?.full_name ?? fallbackName;
   const isOwner = (authUser?.email ?? "").toLowerCase() === "tyeaawill@gmail.com";
   const visibleNavItems = isOwner ? [...navItems, { label: "User Profiles", icon: UserSearch, id: "dossiers" }] : navItems;
-  const assistantAvatar = (profile?.profile as any)?.avatar_url as string | undefined;
+  const assistantAvatar = ((profile?.profile as any)?.avatar_url as string | undefined) || avatarAsset.url;
+  const updateProfileFn = useServerFn(updateProfile);
+  const nicknameMutation = useMutation({
+    mutationFn: (full_name: string) => updateProfileFn({ data: { full_name } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile"] }),
+  });
 
 
   const handleSignOut = async () => {
@@ -76,27 +91,25 @@ export default function AppPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {mobileOpen && <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setMobileOpen(false)} />}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-border bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      {mobileOpen && <div className="fixed inset-0 z-40 bg-overlay/70 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[18rem] transform border-r border-sidebar-border bg-sidebar/95 shadow-2xl backdrop-blur-2xl transition-transform duration-300 lg:static lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-full flex-col">
           <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-4">
             {assistantAvatar ? (
-              <img src={assistantAvatar} alt={assistantName} className="h-9 w-9 rounded-xl object-cover ring-1 ring-primary/20" />
+              <img src={assistantAvatar} alt={assistantName} className="h-11 w-11 rounded-lg object-cover ring-1 ring-primary/30" />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-                <Sparkles className="h-5 w-5 text-primary" />
-              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/15 font-display text-lg font-semibold text-primary">Y</div>
             )}
             <div>
-              <h1 className="text-sm font-semibold text-sidebar-foreground font-display">{assistantName}</h1>
-              <p className="text-xs text-sidebar-foreground/60">Your assistant</p>
+              <h1 className="text-base font-semibold text-sidebar-foreground font-display">{assistantName}</h1>
+              <p className="text-xs text-sidebar-foreground/60">Research and decisions</p>
             </div>
             <button onClick={() => setMobileOpen(false)} className="ml-auto lg:hidden text-sidebar-foreground/60 hover:text-sidebar-foreground"><X className="h-5 w-5" /></button>
           </div>
-          <nav className="flex-1 space-y-1 px-3 py-4">
+          <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-5">
             {visibleNavItems.map((item) => (
               <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileOpen(false); }}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${activeTab === item.id ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"}`}>
+                className={`flex w-full items-center gap-3 rounded-md px-3 py-3 text-[0.95rem] font-medium transition-all ${activeTab === item.id ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-primary/20" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"}`}>
                 <item.icon className="h-4 w-4" />{item.label}
               </button>
             ))}
@@ -109,7 +122,7 @@ export default function AppPage() {
         </div>
       </aside>
       <div className="flex flex-1 flex-col min-w-0">
-        <div className="flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur-sm lg:hidden">
+        <div className="flex items-center gap-3 border-b border-border bg-background/85 px-4 py-3 backdrop-blur-xl lg:hidden">
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="text-foreground"><Menu className="h-5 w-5" /></Button>
           <span className="font-semibold text-sm font-display">{assistantName}</span>
         </div>
@@ -126,6 +139,18 @@ export default function AppPage() {
           {activeTab === "dossiers" && isOwner && <DossiersView />}
         </main>
       </div>
+      <Dialog open={Boolean(profile && !profile.profile?.full_name)}>
+        <DialogContent className="border-border bg-surface-elevated sm:max-w-md" onEscapeKeyDown={(event) => event.preventDefault()} onPointerDownOutside={(event) => event.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-2xl">How should Yusuf address you?</DialogTitle>
+            <DialogDescription className="text-base leading-7">Choose your real name or a nickname. You can change it later.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(event) => { event.preventDefault(); if (nickname.trim()) nicknameMutation.mutate(nickname.trim()); }} className="space-y-4">
+            <div className="relative"><PencilLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="Name or nickname" className="h-12 bg-background/60 pl-10 text-base" maxLength={100} autoFocus /></div>
+            <Button type="submit" disabled={!nickname.trim() || nicknameMutation.isPending} className="h-11 w-full">Continue as {nickname.trim() || "your chosen name"}</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -158,7 +183,6 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
   const [ttsVoiceURI, setTtsVoiceURI] = useState<string>(() => (typeof window !== "undefined" && localStorage.getItem("yusuf.ttsVoice")) || "");
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const lastSpokenIdRef = useRef<string | null>(null);
 
@@ -209,8 +233,6 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
     },
   });
 
-  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
-
   useEffect(() => {
     if (!hasLoaded || status === "submitted" || status === "streaming") return;
     const saveMessages = async () => {
@@ -234,12 +256,11 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
 
   const isLoading = status === "submitted" || status === "streaming";
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || isLoading) return;
+  const submitPrompt = (text: string) => {
+    if (!text.trim() || isLoading) return;
     setChatError(null);
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
-    sendMessage({ text: chatInput.trim() });
+    sendMessage({ text: text.trim() });
     setChatInput("");
   };
 
@@ -250,7 +271,7 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
     const last = messages[messages.length - 1];
     if (!last || last.role !== "assistant") return;
     if (lastSpokenIdRef.current === last.id) return;
-    const text = last.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
+    const text = normalizeAssistantText(last.parts.map((p) => (p.type === "text" ? p.text : "")).join(""));
     if (!text) return;
     lastSpokenIdRef.current = last.id;
     const utter = new SpeechSynthesisUtterance(text);
@@ -299,69 +320,60 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
     });
   };
 
+  const readText = (text: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const utterance = new SpeechSynthesisUtterance(normalizeAssistantText(text));
+    utterance.lang = ttsLang;
+    const voice = availableVoices.find((item) => item.voiceURI === ttsVoiceURI);
+    if (voice) utterance.voice = voice;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const shareText = async (text: string) => {
+    const clean = normalizeAssistantText(text);
+    if (navigator.share) await navigator.share({ title: `${assistantName} research`, text: clean });
+    else await navigator.clipboard.writeText(clean);
+  };
+
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col lg:h-screen">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+    <div className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden lg:h-screen">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-workspace-glow" />
+      <Conversation className="z-10">
+        <ConversationContent className="mx-auto w-full max-w-4xl gap-9 px-4 pb-40 pt-7 sm:px-7 lg:pt-10">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 animate-pulse-glow">
-              <Sparkles className="h-8 w-8 text-primary" />
+          <ConversationEmptyState className="min-h-[65vh]" icon={<img src={assistantAvatar} alt={assistantName} className="size-24 rounded-2xl object-cover shadow-2xl ring-1 ring-primary/30" />}>
+            <div className="mt-3 max-w-xl text-center">
+              <p className="mb-3 text-xs font-semibold uppercase text-primary">Private research workspace</p>
+              <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">Good to see you, {userName}</h2>
+              <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">Bring me a decision, document, question, or unfinished thought. I’ll investigate it with you.</p>
             </div>
-            <h2 className="text-xl font-semibold text-foreground font-display">Good to see you, {userName}</h2>
-            <p className="mt-2 max-w-md text-sm text-muted-foreground">
-              I'm {assistantName}, your devoted assistant. Tell me what's on your mind, what you need to get done, or what you'd like to explore together.
-            </p>
-          </div>
+          </ConversationEmptyState>
         )}
-        {messages.map((msg, i) => (
-          <div key={msg.id} className={`animate-fade-in-up flex ${msg.role === "user" ? "justify-end" : "justify-start"}`} style={{ animationDelay: `${i * 0.05}s` }}>
-            {msg.role === "assistant" ? (
-              <div className="max-w-[85%] lg:max-w-[70%]">
-                <div className="flex items-center gap-2 mb-1.5">
-                  {assistantAvatar ? (
-                    <img src={assistantAvatar} alt={assistantName} className="h-6 w-6 rounded-full object-cover" />
-                  ) : (
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10"><Sparkles className="h-3 w-3 text-primary" /></div>
-                  )}
-                  <span className="text-xs font-medium text-muted-foreground">{assistantName}</span>
-                </div>
-                <div className="rounded-2xl rounded-tl-sm bg-card border border-border px-4 py-3 text-sm text-card-foreground leading-relaxed">
-                  {msg.parts.map((part, j) => part.type === "text" ? <span key={j} className="whitespace-pre-wrap">{part.text}</span> : null)}
-                </div>
-              </div>
-            ) : (
-              <div className="max-w-[85%] lg:max-w-[70%]">
-                <div className="flex items-center gap-2 mb-1.5 justify-end">
-                  <span className="text-xs font-medium text-muted-foreground">{userName}</span>
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-chat-user/20"><User className="h-3 w-3 text-chat-user" /></div>
-                </div>
-                <div className="rounded-2xl rounded-tr-sm bg-chat-user px-4 py-3 text-sm text-chat-user-foreground leading-relaxed">
-                  {msg.parts.map((p) => p.type === "text" ? p.text : "").join("")}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+        {messages.map((msg) => {
+          const rawText = msg.parts.map((part) => part.type === "text" ? part.text : "").join("");
+          const displayText = msg.role === "assistant" ? normalizeAssistantText(rawText) : rawText;
+          return <Message key={msg.id} from={msg.role} className={msg.role === "assistant" ? "max-w-full" : "max-w-[88%] sm:max-w-[72%]"}>
+            {msg.role === "assistant" && <div className="mb-1 flex items-center gap-2"><img src={assistantAvatar} alt="" className="size-7 rounded-md object-cover" /><span className="text-sm font-semibold text-foreground">{assistantName}</span><span className="text-xs text-muted-foreground">Research assistant</span></div>}
+            <MessageContent className={msg.role === "assistant" ? "w-full text-base leading-8 sm:text-[1.0625rem]" : "bg-chat-user px-4 py-3.5 text-base leading-7 text-chat-user-foreground"}>
+              {msg.role === "assistant" ? <MessageResponse>{displayText}</MessageResponse> : displayText}
+            </MessageContent>
+            {msg.role === "assistant" && displayText && <MessageActions className="mt-1 border-t border-border/60 pt-2">
+              <MessageAction tooltip="Copy reply" label="Copy reply" onClick={() => navigator.clipboard.writeText(displayText)}><Copy /></MessageAction>
+              <MessageAction tooltip="Share reply" label="Share reply" onClick={() => void shareText(displayText)}><Share2 /></MessageAction>
+              <MessageAction tooltip="Read aloud" label="Read aloud" onClick={() => readText(displayText)}><Volume2 /></MessageAction>
+              <MessageAction tooltip="Ask Yusuf to reconsider" label="Reconsider" onClick={() => submitPrompt("Please reconsider your previous answer, check the evidence and gaps, then present a corrected conclusion.")}><RotateCcw /></MessageAction>
+            </MessageActions>}
+          </Message>;
+        })}
         {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-          <div className="flex justify-start">
-            <div className="max-w-[70%]">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10"><Sparkles className="h-3 w-3 text-primary animate-pulse" /></div>
-                <span className="text-xs font-medium text-muted-foreground">{assistantName}</span>
-              </div>
-              <div className="rounded-2xl rounded-tl-sm bg-card border border-border px-4 py-3">
-                <div className="flex gap-1">
-                  <span className="h-2 w-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="h-2 w-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="h-2 w-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
-              </div>
-            </div>
-          </div>
+          <Message from="assistant" className="max-w-full"><div className="flex items-center gap-2"><img src={assistantAvatar} alt="" className="size-7 rounded-md object-cover" /><Shimmer className="text-sm">Yusuf is examining the evidence…</Shimmer></div></Message>
         )}
-      </div>
-      <div className="border-t border-border bg-background/80 backdrop-blur-sm px-4 py-4">
-        <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
+        </ConversationContent>
+        <ConversationScrollButton className="bottom-32" />
+      </Conversation>
+      <div className="absolute inset-x-0 bottom-0 z-20 bg-composer-fade px-3 pb-3 pt-10 sm:px-6 sm:pb-5">
+        <div className="mx-auto max-w-4xl">
           {chatError && (
             <div className="mb-2 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -401,32 +413,19 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
               <p className="text-[10px] text-muted-foreground">Voices come from your browser/OS. Chrome and Edge offer the widest range.</p>
             </div>
           )}
-          <div className="flex items-end gap-2 rounded-2xl border border-input bg-card p-2 shadow-sm">
-            <Button type="button" onClick={() => setShowVoiceSettings((v) => !v)} variant="ghost" size="icon"
-              title="Voice settings"
-              className="h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:text-foreground">
-              <SettingsIcon className="h-4 w-4" />
-            </Button>
-            <Button type="button" onClick={toggleSpeak} variant="ghost" size="icon"
-              title={speakReplies ? "Mute Yusuf's voice" : "Hear Yusuf's voice"}
-              className="h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:text-foreground">
-              {speakReplies ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            </Button>
-            <Textarea ref={textareaRef} value={chatInput} onChange={(e) => setChatInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
-              placeholder={isListening ? "Listening…" : `Message ${assistantName}…`}
-              className="min-h-[44px] max-h-[160px] resize-none border-0 bg-transparent px-3 py-2.5 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
-              rows={1} />
-            <Button type="button" onClick={toggleMic} variant="ghost" size="icon"
-              title={isListening ? "Stop listening" : `Speak (${micLang})`}
-              className={`h-9 w-9 shrink-0 rounded-xl ${isListening ? "bg-destructive/15 text-destructive animate-pulse" : "text-muted-foreground hover:text-foreground"}`}>
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </Button>
-            <Button type="submit" disabled={isLoading || !chatInput.trim()} size="icon" className="h-9 w-9 shrink-0 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </form>
+          <PromptInput onSubmit={({ text }) => submitPrompt(text)} className="rounded-lg shadow-2xl shadow-primary/15">
+            <PromptInputTextarea ref={textareaRef} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={isListening ? "Listening…" : `Ask ${assistantName} to research, compare, or decide…`} className="min-h-20 px-4 pt-4 text-base leading-7" />
+            <PromptInputFooter>
+              <PromptInputTools>
+                <PromptInputButton onClick={() => setShowVoiceSettings((value) => !value)} tooltip="Voice settings"><SettingsIcon /></PromptInputButton>
+                <PromptInputButton onClick={toggleSpeak} tooltip={speakReplies ? "Mute automatic reading" : "Read replies aloud"}>{speakReplies ? <Volume2 /> : <VolumeX />}</PromptInputButton>
+                <PromptInputButton onClick={toggleMic} tooltip={isListening ? "Stop listening" : "Speak your message"} className={isListening ? "bg-destructive/15 text-destructive" : ""}>{isListening ? <MicOff /> : <Mic />}</PromptInputButton>
+              </PromptInputTools>
+              <PromptInputSubmit status={status} disabled={!chatInput.trim() && !isLoading} aria-label="Send message" />
+            </PromptInputFooter>
+          </PromptInput>
+          <p className="mt-2 text-center text-xs text-muted-foreground">AI-assisted research can be wrong. Verify legal, financial, medical, and religious decisions with qualified sources.</p>
+        </div>
       </div>
     </div>
   );
