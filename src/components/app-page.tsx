@@ -8,7 +8,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   MessageSquare, CheckSquare, Target, BarChart3, LogOut, User, Sparkles,
   Menu, X, Plus, Trash2, CheckCircle2, Circle, AlertTriangle,
-  ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2, VolumeX,
+  ArrowRight, TrendingUp, Lock, ShieldCheck, Mic, MicOff, Volume2,
   Settings as SettingsIcon, AlertCircle, FolderOpen, Newspaper, Mail, UserSearch,
   Copy, Share2, RotateCcw, Check, PencilLine
 } from "lucide-react";
@@ -174,7 +174,6 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
   const [hasLoaded, setHasLoaded] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [speakReplies, setSpeakReplies] = useState(true);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [chatError, setChatError] = useState<string | null>(null);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
@@ -184,7 +183,6 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
-  const lastSpokenIdRef = useRef<string | null>(null);
 
   useEffect(() => { localStorage.setItem("yusuf.micLang", micLang); }, [micLang]);
   useEffect(() => { localStorage.setItem("yusuf.ttsLang", ttsLang); }, [ttsLang]);
@@ -264,25 +262,6 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
     setChatInput("");
   };
 
-  // Speak assistant replies once streaming finishes
-  useEffect(() => {
-    if (!speakReplies || isLoading) return;
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    const last = messages[messages.length - 1];
-    if (!last || last.role !== "assistant") return;
-    if (lastSpokenIdRef.current === last.id) return;
-    const text = normalizeAssistantText(last.parts.map((p) => (p.type === "text" ? p.text : "")).join(""));
-    if (!text) return;
-    lastSpokenIdRef.current = last.id;
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 1; utter.pitch = 1; utter.volume = 1;
-    utter.lang = ttsLang;
-    const voice = availableVoices.find((v) => v.voiceURI === ttsVoiceURI);
-    if (voice) utter.voice = voice;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utter);
-  }, [messages, isLoading, speakReplies, ttsLang, ttsVoiceURI, availableVoices]);
-
   useEffect(() => () => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }, []);
 
   const toggleMic = () => {
@@ -312,14 +291,6 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
     try { rec.start(); } catch { /* already started */ }
   };
 
-  const toggleSpeak = () => {
-    setSpeakReplies((v) => {
-      const next = !v;
-      if (!next && typeof window !== "undefined") window.speechSynthesis?.cancel();
-      return next;
-    });
-  };
-
   const readText = (text: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     const utterance = new SpeechSynthesisUtterance(normalizeAssistantText(text));
@@ -346,13 +317,13 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
             <div className="mt-3 max-w-xl text-center">
               <p className="mb-3 text-xs font-semibold uppercase text-primary">Private research workspace</p>
               <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">Good to see you, {userName}</h2>
-              <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">Bring me a decision, document, question, or unfinished thought. I’ll investigate it with you.</p>
+              <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">What’s making you hesitate?</p>
             </div>
           </ConversationEmptyState>
         )}
         {messages.map((msg) => {
           const rawText = msg.parts.map((part) => part.type === "text" ? part.text : "").join("");
-          const displayText = msg.role === "assistant" ? normalizeAssistantText(rawText) : rawText;
+          const displayText = rawText;
           return <Message key={msg.id} from={msg.role} className={msg.role === "assistant" ? "max-w-full" : "max-w-[88%] sm:max-w-[72%]"}>
             {msg.role === "assistant" && <div className="mb-1 flex items-center gap-2"><img src={assistantAvatar} alt="" className="size-7 rounded-md object-cover" /><span className="text-sm font-semibold text-foreground">{assistantName}</span><span className="text-xs text-muted-foreground">Research assistant</span></div>}
             <MessageContent className={msg.role === "assistant" ? "w-full text-base leading-8 sm:text-[1.0625rem]" : "bg-chat-user px-4 py-3.5 text-base leading-7 text-chat-user-foreground"}>
@@ -414,11 +385,10 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
             </div>
           )}
           <PromptInput onSubmit={({ text }) => submitPrompt(text)} className="rounded-lg shadow-2xl shadow-primary/15">
-            <PromptInputTextarea ref={textareaRef} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={isListening ? "Listening…" : `Ask ${assistantName} to research, compare, or decide…`} className="min-h-20 px-4 pt-4 text-base leading-7" />
+            <PromptInputTextarea ref={textareaRef} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={isListening ? "Listening…" : `Ask ${assistantName} to examine…`} className="min-h-20 px-4 pt-4 text-base leading-7" />
             <PromptInputFooter>
               <PromptInputTools>
                 <PromptInputButton onClick={() => setShowVoiceSettings((value) => !value)} tooltip="Voice settings"><SettingsIcon /></PromptInputButton>
-                <PromptInputButton onClick={toggleSpeak} tooltip={speakReplies ? "Mute automatic reading" : "Read replies aloud"}>{speakReplies ? <Volume2 /> : <VolumeX />}</PromptInputButton>
                 <PromptInputButton onClick={toggleMic} tooltip={isListening ? "Stop listening" : "Speak your message"} className={isListening ? "bg-destructive/15 text-destructive" : ""}>{isListening ? <MicOff /> : <Mic />}</PromptInputButton>
               </PromptInputTools>
               <PromptInputSubmit status={status} disabled={!chatInput.trim() && !isLoading} aria-label="Send message" />
