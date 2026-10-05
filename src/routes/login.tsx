@@ -8,6 +8,14 @@ import { Mail, Lock, Sparkles, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 
 export const Route = createFileRoute("/login")({
+  head: () => ({ meta: [
+    { title: "Sign in — Yusuf" },
+    { name: "description", content: "Sign in to your private Yusuf research workspace." },
+    { property: "og:title", content: "Sign in — Yusuf" },
+    { property: "og:description", content: "Access your personal Yusuf research workspace." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: LoginPage,
 });
 
