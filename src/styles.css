@@ -166,3 +166,37 @@
 .animate-pulse-glow {
   animation: pulse-glow 3s ease-in-out infinite;
 }
+
+.yusuf-workspace {
+  height: var(--app-height, 100dvh);
+}
+
+.yusuf-composer {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.yusuf-report {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.yusuf-report :is(p, ul, ol, blockquote, table) {
+  margin-block: 0 1.15em;
+}
+
+.yusuf-report :is(h1, h2, h3, h4) {
+  margin-block: 1.5em 0.6em;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.yusuf-report h1 { font-size: 1.5rem; }
+.yusuf-report h2 { font-size: 1.25rem; }
+.yusuf-report :is(h3, h4) { font-size: 1.125rem; }
+.yusuf-report li { margin-block: 0.5em; }
+.yusuf-report a { text-underline-offset: 0.2em; }
+
+@media (min-width: 1024px) {
+  .yusuf-report { font-size: 1.1875rem; }
+}

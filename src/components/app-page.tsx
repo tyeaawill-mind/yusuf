@@ -64,6 +64,21 @@ export default function AppPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [nickname, setNickname] = useState("");
+  const workspaceRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const resizeWorkspace = () => {
+      workspaceRef.current?.style.setProperty("--app-height", `${viewport?.height ?? window.innerHeight}px`);
+    };
+    resizeWorkspace();
+    viewport?.addEventListener("resize", resizeWorkspace);
+    window.addEventListener("resize", resizeWorkspace);
+    return () => {
+      viewport?.removeEventListener("resize", resizeWorkspace);
+      window.removeEventListener("resize", resizeWorkspace);
+    };
+  }, []);
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: useServerFn(getProfile) });
   const { data: authUser } = useQuery({
@@ -90,7 +105,7 @@ export default function AppPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div ref={workspaceRef} className="yusuf-workspace flex overflow-hidden bg-background">
       {mobileOpen && <div className="fixed inset-0 z-40 bg-overlay/70 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />}
       <aside className={`fixed inset-y-0 left-0 z-50 w-[18rem] transform border-r border-sidebar-border bg-sidebar/95 shadow-2xl backdrop-blur-2xl transition-transform duration-300 lg:static lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-full flex-col">
@@ -121,12 +136,12 @@ export default function AppPage() {
           </div>
         </div>
       </aside>
-      <div className="flex flex-1 flex-col min-w-0">
-        <div className="flex items-center gap-3 border-b border-border bg-background/85 px-4 py-3 backdrop-blur-xl lg:hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex shrink-0 items-center gap-3 border-b border-border bg-background px-4 py-3 lg:hidden">
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="text-foreground"><Menu className="h-5 w-5" /></Button>
           <span className="font-semibold text-sm font-display">{assistantName}</span>
         </div>
-        <main className="flex-1 overflow-auto">
+        <main className={`min-h-0 flex-1 ${activeTab === "chat" ? "overflow-hidden" : "overflow-auto"}`}>
           {activeTab === "chat" && <ChatView userName={userName} assistantName={assistantName} assistantAvatar={assistantAvatar} />}
           {activeTab === "briefings" && <BriefingsView />}
           {activeTab === "mail" && <MailView />}
@@ -308,12 +323,12 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
   };
 
   return (
-    <div className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden lg:h-screen">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-workspace-glow" />
-      <Conversation className="z-10">
-        <ConversationContent className="mx-auto w-full max-w-4xl gap-9 px-4 pb-40 pt-7 sm:px-7 lg:pt-10">
+      <Conversation className="z-10 min-h-0" aria-label="Conversation with Yusuf">
+        <ConversationContent className="mx-auto w-full max-w-3xl gap-10 px-5 pb-8 pt-6 sm:px-8 lg:pt-10">
         {messages.length === 0 && (
-          <ConversationEmptyState className="min-h-[65vh]" icon={<img src={assistantAvatar} alt={assistantName} className="size-24 rounded-2xl object-cover shadow-2xl ring-1 ring-primary/30" />}>
+          <ConversationEmptyState className="min-h-64 py-8" icon={<img src={assistantAvatar} alt={assistantName} className="size-24 rounded-2xl object-cover shadow-2xl ring-1 ring-primary/30" />}>
             <div className="mt-3 max-w-xl text-center">
               <p className="mb-3 text-xs font-semibold uppercase text-primary">Private research workspace</p>
               <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">Good to see you, {userName}</h2>
@@ -326,8 +341,8 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
           const displayText = rawText;
           return <Message key={msg.id} from={msg.role} className={msg.role === "assistant" ? "max-w-full" : "max-w-[88%] sm:max-w-[72%]"}>
             {msg.role === "assistant" && <div className="mb-1 flex items-center gap-2"><img src={assistantAvatar} alt="" className="size-7 rounded-md object-cover" /><span className="text-sm font-semibold text-foreground">{assistantName}</span><span className="text-xs text-muted-foreground">Research assistant</span></div>}
-            <MessageContent className={msg.role === "assistant" ? "w-full text-base leading-8 sm:text-[1.0625rem]" : "bg-chat-user px-4 py-3.5 text-base leading-7 text-chat-user-foreground"}>
-              {msg.role === "assistant" ? <MessageResponse>{displayText}</MessageResponse> : displayText}
+            <MessageContent className={msg.role === "assistant" ? "w-full text-lg leading-relaxed" : "bg-chat-user px-4 py-3.5 text-lg leading-relaxed text-chat-user-foreground"}>
+              {msg.role === "assistant" ? <MessageResponse className="yusuf-report" isAnimating={status === "streaming" && msg.id === messages.at(-1)?.id}>{displayText}</MessageResponse> : displayText}
             </MessageContent>
             {msg.role === "assistant" && displayText && <MessageActions className="mt-1 border-t border-border/60 pt-2">
               <MessageAction tooltip="Copy reply" label="Copy reply" onClick={() => navigator.clipboard.writeText(displayText)}><Copy /></MessageAction>
@@ -341,10 +356,10 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
           <Message from="assistant" className="max-w-full"><div className="flex items-center gap-2"><img src={assistantAvatar} alt="" className="size-7 rounded-md object-cover" /><Shimmer className="text-sm">Yusuf is examining the evidence…</Shimmer></div></Message>
         )}
         </ConversationContent>
-        <ConversationScrollButton className="bottom-32" />
+        <ConversationScrollButton className="bottom-3" aria-label="Jump to latest message" />
       </Conversation>
-      <div className="absolute inset-x-0 bottom-0 z-20 bg-composer-fade px-3 pb-3 pt-10 sm:px-6 sm:pb-5">
-        <div className="mx-auto max-w-4xl">
+      <div className="yusuf-composer relative z-20 max-h-[55%] shrink-0 overflow-y-auto border-t border-border bg-background px-3 pt-3 sm:px-6" aria-label="Write to Yusuf">
+        <div className="mx-auto max-w-3xl">
           {chatError && (
             <div className="mb-2 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -384,8 +399,8 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
               <p className="text-[10px] text-muted-foreground">Voices come from your browser/OS. Chrome and Edge offer the widest range.</p>
             </div>
           )}
-          <PromptInput onSubmit={({ text }) => submitPrompt(text)} className="rounded-lg shadow-2xl shadow-primary/15">
-            <PromptInputTextarea ref={textareaRef} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={isListening ? "Listening…" : `Ask ${assistantName} to examine…`} className="min-h-20 px-4 pt-4 text-base leading-7" />
+          <PromptInput onSubmit={({ text }) => submitPrompt(text)} className="rounded-lg bg-card">
+            <PromptInputTextarea ref={textareaRef} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={isListening ? "Listening…" : `Ask ${assistantName} to examine…`} aria-label="Message to Yusuf" className="min-h-16 max-h-32 overflow-y-auto px-4 pt-3 text-lg leading-7" />
             <PromptInputFooter>
               <PromptInputTools>
                 <PromptInputButton onClick={() => setShowVoiceSettings((value) => !value)} tooltip="Voice settings"><SettingsIcon /></PromptInputButton>
