@@ -400,7 +400,7 @@ function ChatView({ userName, assistantName, assistantAvatar }: { userName: stri
             </div>
           )}
           <PromptInput onSubmit={({ text }) => submitPrompt(text)} className="rounded-lg bg-card">
-            <PromptInputTextarea ref={textareaRef} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={isListening ? "Listening…" : `Ask ${assistantName} to examine…`} aria-label="Message to Yusuf" className="min-h-16 max-h-32 overflow-y-auto px-4 pt-3 text-lg leading-7" />
+            <PromptInputTextarea ref={textareaRef} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={isListening ? "Listening…" : `Ask ${assistantName} to examine…`} aria-label="Message to Yusuf" className="min-h-16 max-h-32 overflow-y-auto px-4 pt-3 text-lg leading-7 md:text-lg" />
             <PromptInputFooter>
               <PromptInputTools>
                 <PromptInputButton onClick={() => setShowVoiceSettings((value) => !value)} tooltip="Voice settings"><SettingsIcon /></PromptInputButton>
