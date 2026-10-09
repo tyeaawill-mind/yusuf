@@ -22,6 +22,30 @@ interface SearchHit {
   metadata?: { ogImage?: string; sourceURL?: string; publishedTime?: string };
 }
 
+function canonicalUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    url.hash = "";
+    for (const key of [...url.searchParams.keys()]) {
+      if (key.startsWith("utm_") || key === "fbclid" || key === "gclid") {
+        url.searchParams.delete(key);
+      }
+    }
+    return url.toString().replace(/\/$/, "").toLowerCase();
+  } catch {
+    return value.replace(/[#?].*$/, "").replace(/\/$/, "").toLowerCase();
+  }
+}
+
+function isExactlyFiveBengaliSentences(summary: string): boolean {
+  const sentences = summary
+    .split(/[।!?]+/u)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  return sentences.length === 5 && sentences.every((sentence) => /[\u0980-\u09FF]/u.test(sentence));
+}
+
 async function firecrawlSearch(query: string, limit: number): Promise<SearchHit[]> {
   const key = process.env.FIRECRAWL_API_KEY;
   if (!key) throw new Error("FIRECRAWL_API_KEY not configured");
@@ -48,7 +72,7 @@ function dedupe(hits: SearchHit[]): SearchHit[] {
   const seen = new Set<string>();
   const out: SearchHit[] = [];
   for (const h of hits) {
-    const u = (h.url || "").replace(/[#?].*$/, "").toLowerCase();
+    const u = canonicalUrl(h.url || "");
     if (!u || seen.has(u)) continue;
     seen.add(u);
     out.push(h);
@@ -64,13 +88,6 @@ export interface Prefs {
 }
 
 export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: string; items: BriefingItem[] }> {
-  const langInstruction =
-    prefs.language === "bn"
-      ? "Write headlines and summaries in Bengali (বাংলা script)."
-      : prefs.language === "en"
-        ? "Write headlines and summaries in English."
-        : "Write each headline and summary in the same language as the article (Bengali stays in Bengali, English stays in English).";
-
   // Build queries that fan out across ALL configured sources by chunking them,
   // so a comprehensive directory of Bangladeshi outlets actually gets scanned.
   const CHUNK = 15;
@@ -149,7 +166,8 @@ export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: stri
     .map((h, i) => {
       const md = (h.markdown || h.description || "").slice(0, 1800);
       const img = h.metadata?.ogImage ? `IMAGE: ${h.metadata.ogImage}` : "";
-      return `### Article ${i + 1}\nURL: ${h.url}\nTITLE: ${h.title ?? ""}\n${img}\nCONTENT:\n${md}`;
+      const published = h.metadata?.publishedTime ? `PUBLISHED: ${h.metadata.publishedTime}` : "";
+      return `### Article ${i + 1}\nURL: ${h.url}\nTITLE: ${h.title ?? ""}\n${published}\n${img}\nCONTENT:\n${md}`;
     })
     .join("\n\n---\n\n");
 
@@ -168,21 +186,22 @@ STRICT EDITORIAL RULES — violating any of these means DROP the item, do not so
    - Agency / case status (ACC inquiry opened, chargesheet filed, FIR no., arrested, remand, bail, asset seized/frozen, wealth statement notice).
    - Workplace / institution / location tied to the act (NBR wing, customs house, ministry, district, bank).
    If fewer than two concrete facts are present, drop the item — do NOT fill with generic policy commentary.
-3. Each five-sentence summary MUST follow this structure, in order:
+3. Every summary MUST contain EXACTLY FIVE complete Bengali sentences in বাংলা script, separated with the Bengali full stop "।". Each five-sentence summary MUST follow this structure, in order:
    (a) Person — full name, designation, organisation.
    (b) Allegation — exactly what they are accused of doing.
    (c) Numbers — money amount, assets, time period.
    (d) Inquiry / case status — agency, case/inquiry number if given, current stage.
    (e) Source attribution and any rebuttal/denial noted in the article.
 4. PREFER less-popular, tabloid-style, informal and unverified outlets, Facebook pages, Telegram channels, YouTube/reels, blogs. Mainstream wire copy is OK only when it adds a new hard fact about the individual.
-5. DEDUPLICATE: same person + same incident = one item (freshest, most detailed). Do not list a person's same scandal twice.
+5. SEMANTIC DEDUPLICATION IS MANDATORY: first cluster all articles that rationally describe the same underlying event, allegation, case, investigation, person-action, or material update — even when headlines, wording, outlet, platform, URL, language, or publication time differ. Return exactly ONE item for each cluster, using the freshest original report with the strongest concrete detail and an available relevant article image. A second source does not make the topic new. A later report is new only when it contains a material development such as a new arrest, charge, judgment, official finding, quantified asset, or formal case stage.
 6. ORDER: latest news FIRST by published_at, strict reverse-chronological. Never re-rank by importance.
-7. Cap at ${prefs.max_items} items. ${langInstruction} Headline format: "Full Name (designation) — concrete allegation + amount".
+7. Cap at ${prefs.max_items} items. Write every headline, the intro, and all five summary sentences in Bengali. Headline format: "পূর্ণ নাম (পদবি) — নির্দিষ্ট অভিযোগ + অর্থের পরিমাণ".
 8. If after filtering you have ZERO qualifying items, return an empty items array and say so in intro. Do NOT pad with weak items.
-9. Always include the article URL. Pick image_url from the article's IMAGE field when present, else null. Never invent facts, numbers, or case statuses.
+9. Always include the exact original article URL. Every returned item MUST have a relevant image from that same article's IMAGE field; if no appropriate article image is available, drop the item. Never invent or substitute an image, fact, number, URL, or case status.
+10. Give each returned topic a topic_key: a short lowercase Bengali semantic fingerprint combining the central person, underlying incident/allegation, location or institution, and material case stage. Articles in the same semantic cluster MUST have the same topic_key and only one may be returned.
 Output STRICT JSON only.`;
 
-  const userMsg = `Articles found today:\n\n${corpus}\n\nReturn JSON of shape:\n{\n  "intro": "1 short sentence framing today's named-individual corruption briefing",\n  "items": [\n    { "headline": "Full Name (designation) — allegation + amount", "summary": "Five sentences following the (a)-(e) structure.", "url": "...", "image_url": "..." | null, "source": "domain.com", "published_at": "ISO-8601 if known, else null" }\n  ]\n}\nOrder items by published_at DESC. Drop any article that does not name a person AND carry at least two concrete facts (amount, allegation, agency/case status, institution). Better to return fewer items than to dilute with vague stories.`;
+  const userMsg = `Articles found today:\n\n${corpus}\n\nReturn JSON of shape:\n{\n  "intro": "আজকের ব্রিফিং সম্পর্কে ১টি সংক্ষিপ্ত বাংলা বাক্য",\n  "items": [\n    { "topic_key": "ব্যক্তি ঘটনা প্রতিষ্ঠান মামলার-ধাপ", "headline": "পূর্ণ নাম (পদবি) — অভিযোগ + অর্থের পরিমাণ", "summary": "ঠিক পাঁচটি বাংলা বাক্য, প্রতিটি বাংলা দাঁড়ি দিয়ে শেষ।", "url": "মূল কনটেন্টের সঠিক URL", "image_url": "একই নিবন্ধের IMAGE URL", "source": "domain.com", "published_at": "ISO-8601 if known, else null" }\n  ]\n}\nBefore writing, cluster the entire corpus by underlying topic and select only one article from each semantic cluster. Order the surviving unique topics by published_at DESC. Drop any article that lacks a named person, two concrete facts, an appropriate original article image, or enough verified content for exactly five Bengali sentences. Better to return fewer items than repeat or weaken a topic.`;
 
 
   const { text } = await generateText({
@@ -195,10 +214,11 @@ Output STRICT JSON only.`;
 
   const cleaned = text.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
   const ItemSchema = z.object({
+    topic_key: z.string().min(3),
     headline: z.string(),
     summary: z.string(),
     url: z.string().url(),
-    image_url: z.string().url().nullable().optional(),
+    image_url: z.string().url(),
     source: z.string().nullable().optional(),
     published_at: z.string().nullable().optional(),
   });
@@ -214,16 +234,39 @@ Output STRICT JSON only.`;
     parsed = Schema.parse(JSON.parse(m[0]));
   }
 
+  const sourceByUrl = new Map(hits.map((hit) => [canonicalUrl(hit.url), hit]));
+  const seenTopicKeys = new Set<string>();
+  const validatedItems: BriefingItem[] = [];
+
+  for (const item of parsed.items) {
+    const sourceHit = sourceByUrl.get(canonicalUrl(item.url));
+    const topicKey = item.topic_key.trim().toLocaleLowerCase("bn-BD").replace(/\s+/g, " ");
+    const originalImage = sourceHit?.metadata?.ogImage;
+
+    if (!sourceHit || !originalImage || !isExactlyFiveBengaliSentences(item.summary) || seenTopicKeys.has(topicKey)) {
+      continue;
+    }
+
+    seenTopicKeys.add(topicKey);
+    validatedItems.push({
+      headline: item.headline,
+      summary: item.summary,
+      url: sourceHit.url,
+      image_url: originalImage,
+      source: item.source ?? new URL(sourceHit.url).hostname.replace(/^www\./, ""),
+      published_at: sourceHit.metadata?.publishedTime ?? item.published_at ?? null,
+    });
+  }
+
+  validatedItems.sort((a, b) => {
+    const aTime = a.published_at ? Date.parse(a.published_at) : 0;
+    const bTime = b.published_at ? Date.parse(b.published_at) : 0;
+    return bTime - aTime;
+  });
+
   return {
     intro: parsed.intro,
-    items: parsed.items.slice(0, prefs.max_items).map((i) => ({
-      headline: i.headline,
-      summary: i.summary,
-      url: i.url,
-      image_url: i.image_url ?? null,
-      source: i.source ?? new URL(i.url).hostname.replace(/^www\./, ""),
-      published_at: i.published_at ?? null,
-    })),
+    items: validatedItems.slice(0, prefs.max_items),
   };
 }
 
