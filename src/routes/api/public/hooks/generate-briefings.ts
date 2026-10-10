@@ -15,7 +15,8 @@ function buildEmailHtml(intro: string, items: BriefingItem[], localDate: string)
   const list = items
     .map(
       (it) => `
-        <li style="margin:0 0 18px 0;padding:0;">
+        <li style="margin:0 0 22px 0;padding:0;">
+          ${it.image_url && /^https?:\/\//i.test(it.image_url) ? `<a href="${escapeHtml(it.url)}"><img src="${escapeHtml(it.image_url)}" alt="${escapeHtml(it.headline)}" width="640" style="display:block;width:100%;max-width:640px;height:auto;border-radius:8px;margin:0 0 8px 0;border:0;" /></a>` : ""}
           <a href="${escapeHtml(it.url)}" style="color:#0b66c2;text-decoration:none;font-weight:600;font-size:16px;">${escapeHtml(it.headline)}</a>
           <div style="color:#666;font-size:12px;margin:2px 0 6px;">${escapeHtml(it.source ?? "")}</div>
           <div style="color:#222;font-size:14px;line-height:1.5;">${escapeHtml(it.summary)}</div>
@@ -142,7 +143,18 @@ export const Route = createFileRoute("/api/public/hooks/generate-briefings")({
         for (const prefs of prefsList ?? []) {
           const local_date = localDateInTZ(prefs.timezone || "Asia/Dhaka");
           try {
+            const since = new Date(Date.now() - 4 * 86400000).toISOString();
+            const { data: past } = await supabase
+              .from("briefings")
+              .select("items")
+              .eq("user_id", prefs.user_id)
+              .gte("created_at", since)
+              .neq("local_date", local_date);
+            const recent = (past ?? []).flatMap((b: any) => (Array.isArray(b.items) ? b.items : []))
+              .filter((i: any) => i?.headline)
+              .map((i: any) => ({ headline: String(i.headline), topic_key: i.topic_key ?? null }));
             const result = await generateBriefingItems({
+              recent,
               sources: prefs.sources,
               topics: prefs.topics,
               language: prefs.language as "en" | "bn" | "auto",
