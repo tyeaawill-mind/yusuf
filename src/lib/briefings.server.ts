@@ -12,6 +12,7 @@ export interface BriefingItem {
   image_url?: string | null;
   source?: string | null;
   published_at?: string | null;
+  topic_key?: string | null;
 }
 
 interface SearchHit {
@@ -37,13 +38,64 @@ function canonicalUrl(value: string): string {
   }
 }
 
-function isExactlyFiveBengaliSentences(summary: string): boolean {
-  const sentences = summary
+export function isExactlyFiveBengaliSentences(summary: string): boolean {
+  const text = summary.trim();
+  // Must end with a sentence terminator, no Latin full stops used as sentence breaks.
+  if (!/[।!?]$/u.test(text)) return false;
+  const sentences = text
     .split(/[।!?]+/u)
     .map((sentence) => sentence.trim())
     .filter(Boolean);
+  if (sentences.length !== 5) return false;
+  return sentences.every((sentence) => {
+    const bn = (sentence.match(/[\u0980-\u09FF]/gu) ?? []).length;
+    const latin = (sentence.match(/[A-Za-z]/g) ?? []).length;
+    // Mostly Bengali script (names/acronyms in Latin allowed) and not a fragment.
+    return bn >= 12 && bn > latin * 2;
+  });
+}
 
-  return sentences.length === 5 && sentences.every((sentence) => /[\u0980-\u09FF]/u.test(sentence));
+function tokens(s: string): Set<string> {
+  const stop = new Set(["ও","এবং","এর","করে","হয়","থেকে","জন্য","একটি","বলে","তার","নিয়ে","the","of","and","in","to","a"]);
+  return new Set(
+    s.toLocaleLowerCase("bn-BD")
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .split(/\s+/)
+      .filter((t) => t.length > 1 && !stop.has(t)),
+  );
+}
+
+function similarity(a: Set<string>, b: Set<string>): number {
+  if (!a.size || !b.size) return 0;
+  let inter = 0;
+  for (const t of a) if (b.has(t)) inter++;
+  return inter / Math.min(a.size, b.size);
+}
+
+function isHttpUrl(v: string | undefined | null): v is string {
+  if (!v) return false;
+  try { const u = new URL(v); return u.protocol === "https:" || u.protocol === "http:"; } catch { return false; }
+}
+
+// Headline subject = text before the em dash (person + designation).
+function subjectOf(headline: string): string {
+  return headline.split(/\s[—–-]\s/)[0] ?? headline;
+}
+
+export function isDuplicateTopic(
+  item: { topic_key: string; headline: string },
+  kept: { topic_key?: string | null; headline: string }[],
+): boolean {
+  const k = tokens(item.topic_key);
+  const h = tokens(item.headline);
+  const subj = tokens(subjectOf(item.headline));
+  return kept.some((o) => {
+    const ok = tokens(o.topic_key ?? "");
+    if (similarity(k, ok) >= 0.6) return true;
+    if (similarity(h, tokens(o.headline)) >= 0.55) return true;
+    // Same named person + overlapping allegation keys => same event.
+    return similarity(subj, tokens(subjectOf(o.headline))) >= 0.8 && similarity(k, ok) >= 0.35;
+  });
 }
 
 async function firecrawlSearch(query: string, limit: number): Promise<SearchHit[]> {
@@ -85,6 +137,8 @@ export interface Prefs {
   topics: string[];
   language: "en" | "bn" | "auto";
   max_items: number;
+  /** Items already sent in recent briefings; repeats of these are dropped. */
+  recent?: { topic_key?: string | null; headline: string }[];
 }
 
 export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: string; items: BriefingItem[] }> {
@@ -235,20 +289,25 @@ Output STRICT JSON only.`;
   }
 
   const sourceByUrl = new Map(hits.map((hit) => [canonicalUrl(hit.url), hit]));
-  const seenTopicKeys = new Set<string>();
   const validatedItems: BriefingItem[] = [];
+  const recent = prefs.recent ?? [];
+  const rejected: Record<string, number> = {};
+  const reject = (r: string) => { rejected[r] = (rejected[r] ?? 0) + 1; };
 
   for (const item of parsed.items) {
     const sourceHit = sourceByUrl.get(canonicalUrl(item.url));
     const topicKey = item.topic_key.trim().toLocaleLowerCase("bn-BD").replace(/\s+/g, " ");
     const originalImage = sourceHit?.metadata?.ogImage;
 
-    if (!sourceHit || !originalImage || !isExactlyFiveBengaliSentences(item.summary) || seenTopicKeys.has(topicKey)) {
-      continue;
-    }
+    if (!sourceHit) { reject("unknown_url"); continue; }
+    if (!isHttpUrl(originalImage)) { reject("no_image"); continue; }
+    if (!isExactlyFiveBengaliSentences(item.summary)) { reject("not_five_bn"); continue; }
+    const candidate = { topic_key: topicKey, headline: item.headline };
+    if (isDuplicateTopic(candidate, validatedItems as any)) { reject("dup_in_run"); continue; }
+    if (isDuplicateTopic(candidate, recent)) { reject("dup_recent"); continue; }
 
-    seenTopicKeys.add(topicKey);
     validatedItems.push({
+      topic_key: topicKey,
       headline: item.headline,
       summary: item.summary,
       url: sourceHit.url,
@@ -264,6 +323,7 @@ Output STRICT JSON only.`;
     return bTime - aTime;
   });
 
+  console.log("briefing validation", { kept: validatedItems.length, rejected });
   return {
     intro: parsed.intro,
     items: validatedItems.slice(0, prefs.max_items),
