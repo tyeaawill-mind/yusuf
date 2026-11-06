@@ -6,3 +6,5 @@
 - [x] Verify a real signed-in reply and multiline typing at laptop, phone and simulated keyboard sizes; no overlap or runtime errors.
 - [x] Enforce exactly five Bengali sentences, original links and article images for every briefing topic.
 - [x] Semantically collapse coverage of the same underlying news topic across all sources.
+- [ ] Fix missing Bengali summaries in generated briefings and verify exact five-sentence output.
+- [ ] Add or confirm Lovable Cloud sign-up/login and persistent per-user data access.
