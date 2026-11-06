@@ -26,6 +26,8 @@ interface SearchHit {
 function canonicalUrl(value: string): string {
   try {
     const url = new URL(value);
+    url.hostname = url.hostname.replace(/^(?:www|m|amp)\./i, "");
+    url.pathname = url.pathname.replace(/^\/amp\//i, "/").replace(/\/amp\/?$/i, "/");
     url.hash = "";
     for (const key of [...url.searchParams.keys()]) {
       if (key.startsWith("utm_") || key === "fbclid" || key === "gclid") {
@@ -40,18 +42,14 @@ function canonicalUrl(value: string): string {
 
 export function isExactlyFiveBengaliSentences(summary: string): boolean {
   const text = summary.trim();
-  // Must end with a sentence terminator, no Latin full stops used as sentence breaks.
-  if (!/[।!?]$/u.test(text)) return false;
-  const sentences = text
-    .split(/[।!?]+/u)
-    .map((sentence) => sentence.trim())
-    .filter(Boolean);
+  if (!text.endsWith("।")) return false;
+  const sentences = text.split("।").map((sentence) => sentence.trim()).filter(Boolean);
   if (sentences.length !== 5) return false;
   return sentences.every((sentence) => {
     const bn = (sentence.match(/[\u0980-\u09FF]/gu) ?? []).length;
     const latin = (sentence.match(/[A-Za-z]/g) ?? []).length;
-    // Mostly Bengali script (names/acronyms in Latin allowed) and not a fragment.
-    return bn >= 12 && bn > latin * 2;
+    // Require the sentence itself to be Bengali, while allowing short names and acronyms.
+    return bn >= 12 && bn / Math.max(1, bn + latin) >= 0.55;
   });
 }
 
@@ -89,10 +87,15 @@ export function isDuplicateTopic(
   const k = tokens(item.topic_key);
   const h = tokens(item.headline);
   const subj = tokens(subjectOf(item.headline));
+  const combined = new Set([...k, ...h]);
   return kept.some((o) => {
     const ok = tokens(o.topic_key ?? "");
+    const otherHeadline = tokens(o.headline);
+    const otherCombined = new Set([...ok, ...otherHeadline]);
     if (similarity(k, ok) >= 0.6) return true;
-    if (similarity(h, tokens(o.headline)) >= 0.55) return true;
+    if (similarity(h, otherHeadline) >= 0.55) return true;
+    // Backstop against different topic keys for the same named event and amount.
+    if (similarity(combined, otherCombined) >= 0.48) return true;
     // Same named person + overlapping allegation keys => same event.
     return similarity(subj, tokens(subjectOf(o.headline))) >= 0.8 && similarity(k, ok) >= 0.35;
   });
@@ -160,8 +163,9 @@ export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: stri
     "(আত্মসাৎ OR ঘুষ OR \"অবৈধ সম্পদ\" OR \"অপ্রদর্শিত সম্পদ\" OR অনুসন্ধান OR মামলা OR অভিযোগপত্র OR গ্রেপ্তার OR রিমান্ড OR জব্দ OR ক্রোক OR কোটি OR লাখ OR টাকা)";
   // Site-scoped queries across the configured directory, demanding a named
   // person plus concrete corruption facts.
+  const dailySourceOffset = Math.floor(Date.now() / 86400000) % sourceChunks.length;
   topTopics.slice(0, 6).forEach((t, ti) => {
-    const chunk = sourceChunks[ti % sourceChunks.length];
+    const chunk = sourceChunks[(dailySourceOffset + ti) % sourceChunks.length];
     const sitesQuery = chunk.map((s) => `site:${s}`).join(" OR ");
     queries.push(
       sitesQuery
@@ -198,16 +202,26 @@ export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: stri
   for (const q of hardSweeps) queries.push(q);
 
 
-  const allHits: SearchHit[] = [];
+  const resultGroups: SearchHit[][] = [];
   for (const q of queries) {
     try {
       const hits = await firecrawlSearch(q, 6);
-      allHits.push(...hits);
+      resultGroups.push(hits);
     } catch (e) {
       console.error("Firecrawl query failed", q, e);
     }
   }
-  const hits = dedupe(allHits).slice(0, 24);
+  // Take the best result from each query before taking second-ranked results,
+  // so broad early searches cannot crowd out other source groups and sweeps.
+  const allHits: SearchHit[] = [];
+  const maxResults = Math.max(0, ...resultGroups.map((group) => group.length));
+  for (let rank = 0; rank < maxResults; rank++) {
+    for (const group of resultGroups) {
+      const hit = group[rank];
+      if (hit) allHits.push(hit);
+    }
+  }
+  const hits = dedupe(allHits).slice(0, 36);
 
   if (hits.length === 0) {
     return {
@@ -228,7 +242,7 @@ export async function generateBriefingItems(prefs: Prefs): Promise<{ intro: stri
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("LOVABLE_API_KEY not configured");
   const gateway = createLovableAiGatewayProvider(key);
-  const model = gateway("google/gemini-2.5-flash");
+  const model = gateway("openai/gpt-6-astra");
 
   const system = `You are Yusuf, a personal investigative news editor for the user. You are reviewing Bangladeshi coverage focused on INDIVIDUALS and their alleged corruption / illegal activities — who did what, how much, with whom, where the inquiry stands.
 
@@ -297,7 +311,9 @@ Output STRICT JSON only.`;
   for (const item of parsed.items) {
     const sourceHit = sourceByUrl.get(canonicalUrl(item.url));
     const topicKey = item.topic_key.trim().toLocaleLowerCase("bn-BD").replace(/\s+/g, " ");
-    const originalImage = sourceHit?.metadata?.ogImage;
+    const originalImage = sourceHit?.metadata?.ogImage ??
+      sourceHit?.metadata?.["og:image"] ??
+      sourceHit?.metadata?.["twitter:image"];
 
     if (!sourceHit) { reject("unknown_url"); continue; }
     if (!isHttpUrl(originalImage)) { reject("no_image"); continue; }
