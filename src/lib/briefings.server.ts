@@ -20,7 +20,13 @@ interface SearchHit {
   title?: string;
   description?: string;
   markdown?: string;
-  metadata?: { ogImage?: string; sourceURL?: string; publishedTime?: string };
+  metadata?: {
+    ogImage?: string;
+    "og:image"?: string;
+    "twitter:image"?: string;
+    sourceURL?: string;
+    publishedTime?: string;
+  };
 }
 
 function canonicalUrl(value: string): string {
