@@ -9,3 +9,4 @@
 - [ ] Fix the briefing build error, diagnose missing Bengali summaries, and verify exact five-sentence output.
 - [ ] Confirm Lovable Cloud sign-up/login and persistent per-user data access after the preview builds.
 - [x] Add the requested Bangladesh news and civic sources to the existing briefing list.
+- [ ] Research additional international sources covering Bangladesh corruption and add verified domains.
