@@ -7,6 +7,7 @@
 - [x] Enforce exactly five Bengali sentences, original links and article images for every briefing topic.
 - [x] Semantically collapse coverage of the same underlying news topic across all sources.
 - [x] Fix the briefing build error and test exact five-sentence Bengali validation.
-- [x] Confirm saved per-user records and owner-only access policies exist in Lovable Cloud.
+- [ ] Run a signed-in briefing and verify generated Bengali, photo, original link, and cross-source deduplication end-to-end.
+- [ ] Verify sign-up/login and returning-user access in the live preview; saved per-user data and owner-only access policies are present.
 - [x] Add the requested Bangladesh news and civic sources to the existing briefing list.
 - [x] Research international sources covering Bangladesh corruption and add verified domains.
