@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { updateBriefingPreferencesSchema } from "@/lib/briefing-preferences.schema";
 
 export const getBriefingPreferences = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -25,19 +26,7 @@ export const getBriefingPreferences = createServerFn({ method: "GET" })
 
 export const updateBriefingPreferences = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
-    z
-      .object({
-        enabled: z.boolean().optional(),
-        sources: z.array(z.string().min(1).max(120)).max(60).optional(),
-        topics: z.array(z.string().min(1).max(120)).max(60).optional(),
-        language: z.enum(["en", "bn", "auto"]).optional(),
-        max_items: z.number().int().min(1).max(25).optional(),
-        email_delivery: z.boolean().optional(),
-        recipient_email: z.string().email().max(254).nullable().optional(),
-      })
-      .parse(input),
-  )
+  .inputValidator((input) => updateBriefingPreferencesSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
