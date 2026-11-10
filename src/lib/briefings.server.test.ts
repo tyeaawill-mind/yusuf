@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { isExactlyFiveBengaliSentences } from "@/lib/briefings.server";
 
 describe("isExactlyFiveBengaliSentences", () => {
@@ -11,18 +12,18 @@ describe("isExactlyFiveBengaliSentences", () => {
   ].join("।") + "।";
 
   it("accepts exactly five substantive Bengali sentences", () => {
-    expect(isExactlyFiveBengaliSentences(fiveSentenceSummary)).toBe(true);
+    assert.equal(isExactlyFiveBengaliSentences(fiveSentenceSummary), true);
   });
 
   it("rejects four Bengali sentences", () => {
-    expect(isExactlyFiveBengaliSentences(fiveSentenceSummary.split("।").slice(0, 4).join("।") + "।")).toBe(false);
+    assert.equal(isExactlyFiveBengaliSentences(fiveSentenceSummary.split("।").slice(0, 4).join("।") + "।"), false);
   });
 
   it("rejects six Bengali sentences", () => {
-    expect(isExactlyFiveBengaliSentences(`${fiveSentenceSummary} অতিরিক্ত বাক্য যোগ করা হয়েছে।`)).toBe(false);
+    assert.equal(isExactlyFiveBengaliSentences(`${fiveSentenceSummary} অতিরিক্ত বাক্য যোগ করা হয়েছে।`), false);
   });
 
   it("rejects summaries written only in English", () => {
-    expect(isExactlyFiveBengaliSentences("Rahim has a job. He faces an allegation. Five crore taka is involved. ACC opened an inquiry. The report has no response." )).toBe(false);
+    assert.equal(isExactlyFiveBengaliSentences("Rahim has a job. He faces an allegation. Five crore taka is involved. ACC opened an inquiry. The report has no response."), false);
   });
 });
